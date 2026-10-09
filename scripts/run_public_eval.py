@@ -51,6 +51,10 @@ def main():
             {
                 "id": source["id"],
                 "models": result.models,
+                "reasoning_effort": {
+                    role: getattr(settings, role).reasoning_effort
+                    for role in ("extractor", "critic")
+                },
                 "parser": result.parser,
                 "status": result.status,
                 "rounds": len(result.attempts),

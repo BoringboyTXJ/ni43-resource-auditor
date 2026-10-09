@@ -14,6 +14,7 @@ CRITIC_BASE_URL=https://opencode.ai/zen/go/v1
 CRITIC_MODEL=qwen3.8-max
 CRITIC_API_KEY=你的本地密钥
 CRITIC_API_FORMAT=anthropic
+CRITIC_REASONING_EFFORT=low
 LLM_JSON_MODE=true
 LLM_STREAM=true
 LLM_TIMEOUT_SECONDS=300
@@ -21,7 +22,7 @@ LLM_TIMEOUT_SECONDS=300
 
 这是开发验收使用的 OpenCode Go 配置，两个模型可共享网关及密钥，但必须是不同模型。实际可用模型应先查[官方 Go 文档](https://docs.opencode.ai/docs/go/)和 `/zen/go/v1/models`。应用以自己的 User-Agent 和稳定会话头发送请求。这里填 API 原始模型 ID，**不加** OpenCode 配置中的 `opencode-go/` 前缀；Go 的 base URL 含 `/go`，与 Zen 按量接口不同。Go 的适用流量、额度及模型权限以服务方规定为准。
 
-OpenCode Go 的 DeepSeek 使用 `/chat/completions`，Qwen 使用原生 `/messages`。代码按 `API_FORMAT` 添加端点，并解析对应的流式协议；请不要把完整端点填进 base URL。DeepSeek 的 `reasoning_effort=low` 按[官方接口文档](https://api-docs.deepseek.com/api/create-chat-completion/)设置，其他模型不支持时留空。
+OpenCode Go 的 DeepSeek 使用 `/chat/completions`，Qwen 使用原生 `/messages`。代码按 `API_FORMAT` 添加端点，并解析对应的流式协议；请不要把完整端点填进 base URL。DeepSeek 的 `reasoning_effort=low` 按[官方接口文档](https://api-docs.deepseek.com/api/create-chat-completion/)设置；Anthropic 协议把该配置映射为 `output_config.effort`，Qwen Max 的 `low`、`medium`、`xhigh` 见[官方协议文档](https://docs.qwencloud.com/api-reference/chat/anthropic)。开发配置两者都使用 low，保留独立审核和全部校验门槛；其他模型不支持时留空。
 
 其他提供方可替换两组 base URL、模型、key 和协议格式。base URL 应是模型端点前面的服务根地址，使用 HTTPS；HTTP 仅允许 loopback。不支持 `response_format` 的 chat 服务可设置 `LLM_JSON_MODE=false`；Anthropic 协议自动省略该参数，输出仍必须通过 schema 校验。JSON 无效、截断、接口失败不会产生假成功。
 

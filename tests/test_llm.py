@@ -123,7 +123,9 @@ def test_anthropic_messages_stream_for_qwen_uses_native_protocol(monkeypatch):
     instance = client()
     instance.settings = replace(
         instance.settings,
-        critic=RoleConfig("https://go.test/v1", "qwen", "test", api_format="anthropic"),
+        critic=RoleConfig(
+            "https://go.test/v1", "qwen", "test", api_format="anthropic", reasoning_effort="low"
+        ),
     )
     events = [
         {"type": "message_start", "message": {"id": "msg_test"}},
@@ -146,6 +148,7 @@ def test_anthropic_messages_stream_for_qwen_uses_native_protocol(monkeypatch):
         assert request.get_header("X-api-key") == "test"
         assert request.get_header("Anthropic-version") == "2023-06-01"
         assert "system" in body and "response_format" not in body
+        assert body["output_config"] == {"effort": "low"}
         return Stream(raw)
 
     monkeypatch.setattr(instance.opener, "open", respond)

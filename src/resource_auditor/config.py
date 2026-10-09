@@ -31,7 +31,7 @@ class RoleConfig:
             raise ValueError("Model base URL must not embed credentials, a query, or a fragment")
         if self.api_format not in {"chat", "anthropic"}:
             raise ValueError("API_FORMAT must be chat or anthropic")
-        if self.reasoning_effort not in {"", "none", "low", "medium", "high", "max"}:
+        if self.reasoning_effort not in {"", "none", "low", "medium", "high", "xhigh", "max"}:
             raise ValueError("Invalid model reasoning effort")
 
 

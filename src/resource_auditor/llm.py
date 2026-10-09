@@ -111,9 +111,10 @@ class ModelClient:
         if self.settings.json_mode and config.api_format == "chat":
             body["response_format"] = {"type": "json_object"}
         if config.reasoning_effort:
-            if config.api_format != "chat":
-                raise ModelError("reasoning_effort_requires_chat_protocol")
-            body["reasoning_effort"] = config.reasoning_effort
+            if config.api_format == "anthropic":
+                body["output_config"] = {"effort": config.reasoning_effort}
+            else:
+                body["reasoning_effort"] = config.reasoning_effort
         request = urllib.request.Request(
             config.base_url.rstrip("/") + endpoint,
             json.dumps(body).encode("utf-8"),

@@ -75,6 +75,17 @@ def test_unconfigured_mineru_fails_closed_for_scanned_pdf(monkeypatch, settings)
     assert "scanned_pdf_requires_mineru_or_manual_review" in doc.issues
 
 
+def test_selected_table_receives_declared_standard_without_expanding_scope(monkeypatch, settings):
+    stub_pdf(
+        monkeypatch, ["National Instrument 43-101 technical report", "Indicated Resources Mt 10"]
+    )
+    doc = read_pdf(b"%PDF-test", "unseen.pdf", settings, "2")
+    assert doc.selected_pages == [2]
+    assert "[STANDARD EVIDENCE ONLY; NOT EXTRACTION SCOPE]" in doc.context
+    assert "National Instrument 43-101" in doc.context
+    assert "[PDF PAGE 1]" not in doc.context
+
+
 def test_mineru_failure_can_fallback_only_to_existing_text_layer(monkeypatch, settings):
     stub_pdf(monkeypatch, ["NI 43-101 Mineral Resources Mt\nIndicated 10 1.00 321.5"])
     monkeypatch.setattr(

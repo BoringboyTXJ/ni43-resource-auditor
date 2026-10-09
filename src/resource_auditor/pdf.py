@@ -8,6 +8,8 @@ import pdfplumber
 
 from .mineru_bridge import parse_mineru
 
+NI_STANDARD_PATTERN = r"(?:\bNI|\bNational\s+Instrument)[\s–—-]*43[\s–—-]*101\b"
+
 
 def normalized(text: str) -> str:
     return " ".join(unicodedata.normalize("NFKC", text).split())
@@ -114,7 +116,16 @@ def read_pdf(data: bytes, filename: str, settings, pages: str = "") -> Document:
             if len(selected) > settings.max_selected_pages:
                 issues.append("page_selection_overflow: select resource table pages explicitly")
                 selected = selected[: settings.max_selected_pages]
-            context_parts = []
+            standard_evidence = []
+            for i in range(1, min(10, len(pdf.pages)) + 1):
+                for pattern in (NI_STANDARD_PATTERN, r"\bJORC\b"):
+                    if match := re.search(pattern, normalized(texts.get(i, "")), re.I):
+                        standard_evidence.append(f"PDF page {i}: {match.group(0)}")
+            context_parts = (
+                ["[STANDARD EVIDENCE ONLY; NOT EXTRACTION SCOPE]\n" + "\n".join(standard_evidence)]
+                if standard_evidence
+                else []
+            )
             for i in selected:
                 text = texts[i]
                 # Original page text remains authoritative; tables are only a second view.

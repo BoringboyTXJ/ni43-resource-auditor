@@ -2,7 +2,7 @@ import math
 import re
 
 from .models import Candidate, ResourceRow
-from .pdf import Document, normalized
+from .pdf import NI_STANDARD_PATTERN, Document, normalized
 
 ORE_FACTORS = {"Mt": 1.0, "kt": 0.001, "t": 0.000001}
 METAL_FACTORS = {
@@ -131,7 +131,7 @@ def validate_candidate(candidate: Candidate, document: Document, allow_jorc: boo
         errors.append("JORC_requires_explicit_opt_in")
     opening = normalized(" ".join(document.pages.get(i, "") for i in range(1, 11)))
     if candidate.reporting_standard == "NI43-101" and not re.search(
-        r"(?:\bNI|\bNational\s+Instrument)[\s–—-]*43[\s–—-]*101\b", opening, re.I
+        NI_STANDARD_PATTERN, opening, re.I
     ):
         errors.append("reporting_standard_not_supported_by_opening_pages")
     if candidate.reporting_standard == "JORC" and not re.search(r"\bJORC\b", opening, re.I):
