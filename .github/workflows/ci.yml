@@ -19,3 +19,25 @@ jobs:
       - run: uv run --frozen pytest -q
       - run: docker compose config --quiet
       - run: docker build -t resource-auditor:ci .
+      - name: Smoke-test the image and persistent volume
+        run: |
+          docker run -d --name audit-ci -p 127.0.0.1:8000:8000 --mount type=volume,source=audit-ci-data,target=/app/data resource-auditor:ci
+          python - <<'PY'
+          import json, time, urllib.request
+          for attempt in range(30):
+              try:
+                  with urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2) as response:
+                      health = json.load(response)
+                  break
+              except OSError:
+                  time.sleep(1)
+          else:
+              raise RuntimeError('Container did not become ready')
+          assert health['status'] == 'ok' and health['models_configured'] is False
+          with urllib.request.urlopen('http://127.0.0.1:8000/schema', timeout=2) as response:
+              assert 'ground_truth' in json.load(response)
+          with urllib.request.urlopen('http://127.0.0.1:8000/', timeout=2) as response:
+              assert 'extractForm' in response.read().decode()
+          PY
+          docker exec audit-ci python -c "from pathlib import Path; Path('/app/data/runtime-check').write_text('ok')"
+          docker rm -f audit-ci
