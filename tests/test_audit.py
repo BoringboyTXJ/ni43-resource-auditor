@@ -3,7 +3,7 @@ from copy import deepcopy
 
 import pytest
 
-from resource_auditor.checks import check_row, validate_candidate
+from resource_auditor.checks import check_row, quote_hints, validate_candidate
 from resource_auditor.config import RoleConfig, Settings
 from resource_auditor.engine import audit
 from resource_auditor.evaluation import evaluate, load_truth
@@ -89,6 +89,19 @@ def test_reporting_standard_accepts_full_national_instrument_title(candidate, do
     assert validate_candidate(candidate, document, False) == []
 
 
+def test_header_omission_has_specific_error_and_literal_source_hint(candidate, document):
+    row = candidate.rows[0]
+    document.pages[1] = (
+        "NI 43-101 Resources\nTonnes Grade Gold Classification (Mt) (g/t) (koz)\nIndicated 10 1.00 321.5"
+    )
+    row.evidence.header_quote = "Tonnes Grade Gold (Mt) (g/t) (koz)"
+    assert "header_quote_not_in_source" in check_row(row, document)
+    hints = quote_hints(candidate, document)
+    assert hints[0]["field"] == "header_quote"
+    assert "Classification" in hints[0]["original_window"]
+    assert hints[0]["original_window"] in " ".join(document.pages[1].split())
+
+
 def test_accepted_requires_two_roles_and_independent_approval(settings, candidate, document):
     client = FakeModels([candidate])
     result = audit(document, settings, client)
@@ -166,6 +179,16 @@ def test_provider_failure_is_abstention_not_success(settings, document):
     result = audit(document, settings, client)
     assert result.status == "abstain" and len(result.attempts) == 1
     assert read_events(settings.evolution_log)[0]["error"] == "provider_http_401"
+
+
+def test_schema_failure_followed_by_success_is_a_logged_resolution(settings, candidate, document):
+    client = FakeModels([ModelError("provider_invalid_json_or_schema"), candidate])
+    result = audit(document, settings, client)
+    assert result.status == "accepted" and len(result.attempts) == 2
+    events = read_events(settings.evolution_log)
+    assert [event["kind"] for event in events] == ["failure", "resolution"]
+    assert events[-1]["before"] is None
+    assert few_shots(settings.evolution_log, "different-document")
 
 
 def truth_for(candidate):

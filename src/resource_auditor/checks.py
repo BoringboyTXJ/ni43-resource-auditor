@@ -1,5 +1,6 @@
 import math
 import re
+from difflib import SequenceMatcher
 
 from .models import Candidate, ResourceRow
 from .pdf import NI_STANDARD_PATTERN, Document, normalized
@@ -47,6 +48,10 @@ def check_row(row: ResourceRow, document: Document) -> list[str]:
     header = normalized(ev.header_quote)
     if ev.page not in document.selected_pages or quote not in page_text or header not in page_text:
         errors.append("unsupported_quote_or_page")
+    if header not in page_text:
+        errors.append("header_quote_not_in_source")
+    if quote not in page_text:
+        errors.append("row_quote_not_in_source")
     category_quote = normalized(ev.category_quote)
     category_supported = re.search(rf"\b{row.category}\b", quote, re.I)
     if category_quote:
@@ -117,6 +122,33 @@ def check_row(row: ResourceRow, document: Document) -> list[str]:
     except (ValueError, KeyError):
         errors.append("unparseable_source_number_or_unit")
     return sorted(set(errors))
+
+
+def quote_hints(candidate: Candidate, document: Document) -> list[dict]:
+    """Offer original text for revision; never repair or accept an unsupported quote."""
+    hints = []
+    for i, row in enumerate(candidate.rows):
+        if row.evidence.page not in document.selected_pages:
+            continue
+        text = normalized(document.pages.get(row.evidence.page, ""))
+        for field in ("header_quote", "row_quote"):
+            quote = normalized(getattr(row.evidence, field))
+            if quote in text:
+                continue
+            match = SequenceMatcher(None, quote, text, autojunk=False).find_longest_match()
+            if match.size < 12:
+                continue
+            start = max(0, match.b - match.a - 40)
+            end = min(len(text), start + min(len(quote) + 120, 900))
+            hints.append(
+                {
+                    "row": i,
+                    "field": field,
+                    "page": row.evidence.page,
+                    "original_window": text[start:end],
+                }
+            )
+    return hints
 
 
 def validate_candidate(candidate: Candidate, document: Document, allow_jorc: bool) -> list[str]:

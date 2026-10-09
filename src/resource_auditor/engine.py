@@ -1,4 +1,4 @@
-from .checks import validate_candidate
+from .checks import quote_hints, validate_candidate
 from .config import Settings
 from .evolution import append_event, few_shots
 from .llm import ModelClient, ModelError
@@ -34,6 +34,9 @@ Use basis='in-situ', 'stockpiles', or 'total' for these groups; for deposit subg
 literal deposit/location name. Use concise table IDs such as 'Table 1-1'. Dashes across an
 entire category mean no reported resources, so skip that row rather than inventing zeroes.
 On revision, re-read the source and repair feedback; never simply raise confidence.
+source_quote_hints are literal source windows to help repair failed quotations. They do not
+approve any value. Repair every deterministic quote failure even if a critic calls it a false
+positive: semantic equivalence does not satisfy literal evidence. Do not repeat a failed quote.
 Identify the actual reporting standard, JORC or NI43-101. Do not assume a brand implies a standard.
 """
 
@@ -117,6 +120,7 @@ def audit(
         return result("abstain", document.issues, [])
     examples = few_shots(settings.evolution_log, document.document_id) if use_few_shots else []
     feedback = []
+    hints = []
     previous = None
     for iteration in range(1, 4):
         attempt = Attempt(round=iteration)
@@ -129,6 +133,7 @@ def audit(
                     "previous": previous,
                     "feedback": feedback,
                     "examples": examples,
+                    "source_quote_hints": hints,
                 },
                 Candidate,
             )
@@ -156,7 +161,7 @@ def audit(
             )
             attempts.append(attempt)
             if accepted:
-                if log_events and previous is not None:
+                if log_events and len(attempts) > 1:
                     append_event(
                         settings.evolution_log,
                         {
@@ -179,6 +184,7 @@ def audit(
             if not critique.approved:
                 feedback.append("critic_did_not_approve")
             previous = candidate.model_dump()
+            hints = quote_hints(candidate, document)
         except ModelError as exc:
             attempt.error = str(exc)
             feedback = [str(exc)]

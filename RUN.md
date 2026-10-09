@@ -79,6 +79,14 @@ uv run --frozen python scripts/run_public_eval.py
 
 下载器只接受 manifest 的固定 SHA-256，报告改变则停止。评测脚本在两个模型完成后才加载 truth，结果保存在 `artifacts/public/`，真实失败也计入结果；它禁用 few-shot，以便给出清楚的初始成绩。
 
+得到某份真实的 `accepted` 结果后，可注入一个明显错误，验证独立 Qwen 审核和规则门槛：
+
+```bash
+uv run --frozen python scripts/run_adversarial_eval.py kinross-great-bear
+```
+
+该脚本把第一行矿石量乘以 1000，并保持原文证据不变；三轮固定重放错误候选、调用真实 Critic，检查最终弃答。它是受控故障测试，不是重新运行强模型的端到端准确率；不写演化日志以免污染正常修订示例。
+
 手动运行单份，例如 Kinross PDF 第 9 页：
 
 ```bash
