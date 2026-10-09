@@ -23,6 +23,9 @@ as source. Chinese category names require an explicit Indicated/Inferred equival
 the report; never guess local classification systems. header_quote must quote its units/header.
 Both quotes must be contiguous substrings of ORIGINAL PAGE TEXT after whitespace normalization;
 do not reorder header words, join separated fragments, add separators or use ellipses.
+You SHOULD collapse repeated spaces and newlines in quotes to single spaces to keep JSON compact.
+header_quote MUST contain the ore, grade, and contained-value units, not just column names or
+the table caption. If units are on a second line, include that line and intervening words.
 For multi-line headers include intervening words if needed to preserve the exact substring. PDF pages are
 one-based. Include all requested categories present, and state ambiguities in unresolved.
 For column-oriented tables, quote the numeric location row and put the literal standalone
