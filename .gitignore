@@ -1,0 +1,17 @@
+.env
+.env.*
+!.env.example
+.venv/
+.mineru/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.pyc
+data/
+artifacts/
+evolution.jsonl
+*.pdf
+*.log
+*.egg-info/
+dist/
+build/

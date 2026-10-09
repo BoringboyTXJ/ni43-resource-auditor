@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "document_id": "86e630e479590662e522617f975671ac2f84bfb890d93d61abae4832d8e91e89",
+  "source": {
+    "url": "https://announcements.asx.com.au/asxpdf/20250611/pdf/06kmc3l7r1bjsm.pdf",
+    "pdf_pages": [2], "table": "Table 1", "effective_date": "2025-03-31", "standard": "JORC 2012",
+    "annotation_method": "Manual transcription checked against the rendered source page; one reviewer, not publisher-provided ground truth.",
+    "scope": "Only Table 1 at 0.2% Li2O cutoff. Keep in-situ, stockpiles and total distinct; skip all-dash Inferred stockpiles.",
+    "rounding": "Contained oxide is published in Mt. Stockpile 0.1 Mt must remain 100000 t despite rounded ore/grade arithmetic. This is Li2O, not elemental Li."
+  },
+  "rows": [
+    {"basis":"in-situ","category":"Indicated","commodity":"Li2O","ore_mt":349,"grade":1.29,"grade_unit":"%","contained_metal":4500000,"contained_unit":"t"},
+    {"basis":"in-situ","category":"Inferred","commodity":"Li2O","ore_mt":70,"grade":1.25,"grade_unit":"%","contained_metal":900000,"contained_unit":"t"},
+    {"basis":"stockpiles","category":"Indicated","commodity":"Li2O","ore_mt":7,"grade":0.93,"grade_unit":"%","contained_metal":100000,"contained_unit":"t"},
+    {"basis":"total","category":"Indicated","commodity":"Li2O","ore_mt":356,"grade":1.29,"grade_unit":"%","contained_metal":4600000,"contained_unit":"t"},
+    {"basis":"total","category":"Inferred","commodity":"Li2O","ore_mt":70,"grade":1.25,"grade_unit":"%","contained_metal":900000,"contained_unit":"t"}
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "document_id": "882046c5fb12d50c3624f4806c08be88db5902213d59658b55dab9360cc4e84f",
+  "source": {
+    "url": "https://s204.q4cdn.com/896213035/files/doc_downloads/2023/02/Kinross-GBR-Project-NI-43-101-TR-FINAL-Feb-12-2023.pdf",
+    "pdf_pages": [9], "printed_page": "1", "table": "Table 1-1", "effective_date": "2022-12-31",
+    "annotation_method": "Manual transcription checked against the rendered source page; one reviewer, not publisher-provided ground truth.",
+    "scope": "Only the project summary table; skip TOTAL M&I. Units (000) mean kt and koz."
+  },
+  "rows": [
+    {"category":"Indicated","commodity":"Au","ore_mt":33.11,"grade":2.57,"grade_unit":"g/t","contained_metal":2737000,"contained_unit":"oz"},
+    {"category":"Inferred","commodity":"Au","ore_mt":20.037,"grade":3.56,"grade_unit":"g/t","contained_metal":2290000,"contained_unit":"oz"}
+  ]
+}

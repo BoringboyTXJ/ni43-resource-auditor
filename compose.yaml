@@ -1,0 +1,24 @@
+services:
+  auditor:
+    build: .
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      EXTRACTOR_BASE_URL: ${EXTRACTOR_BASE_URL:-}
+      EXTRACTOR_MODEL: ${EXTRACTOR_MODEL:-}
+      EXTRACTOR_API_KEY: ${EXTRACTOR_API_KEY:-}
+      EXTRACTOR_API_FORMAT: ${EXTRACTOR_API_FORMAT:-chat}
+      EXTRACTOR_REASONING_EFFORT: ${EXTRACTOR_REASONING_EFFORT:-}
+      CRITIC_BASE_URL: ${CRITIC_BASE_URL:-}
+      CRITIC_MODEL: ${CRITIC_MODEL:-}
+      CRITIC_API_KEY: ${CRITIC_API_KEY:-}
+      CRITIC_API_FORMAT: ${CRITIC_API_FORMAT:-chat}
+      LLM_JSON_MODE: ${LLM_JSON_MODE:-true}
+      LLM_STREAM: ${LLM_STREAM:-true}
+      LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-120}
+      EVOLUTION_LOG: /app/data/evolution.jsonl
+    volumes:
+      - audit_data:/app/data
+    restart: unless-stopped
+volumes:
+  audit_data:
