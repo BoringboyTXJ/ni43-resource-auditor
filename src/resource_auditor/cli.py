@@ -73,7 +73,9 @@ def main():
         if args.log:
             settings = replace(settings, evolution_log=args.log)
         events = read_events(args.log or settings.evolution_log)
-        failures = {e["document_id"]: e for e in events if e.get("kind") == "failure"}
+        failures = {
+            e["document_id"]: e for e in events if e.get("kind") in {"failure", "degradation"}
+        }
         report = []
         available = set()
         for path in sorted(args.pdf_dir.glob("*.pdf")):

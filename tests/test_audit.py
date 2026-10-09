@@ -97,6 +97,15 @@ def test_accepted_requires_two_roles_and_independent_approval(settings, candidat
     assert [c[0] for c in client.calls] == ["extractor", "critic"]
 
 
+def test_parser_fallback_is_logged_even_when_original_text_passes(settings, candidate, document):
+    document.parser_notes = ["mineru_failed; using original PDF text layer"]
+    result = audit(document, settings, FakeModels([candidate]))
+    assert result.status == "accepted"
+    event = read_events(settings.evolution_log)[0]
+    assert event["kind"] == "degradation" and event["round"] == 0
+    assert event["reasons"] == document.parser_notes
+
+
 @pytest.mark.parametrize(
     "field,value",
     [("ore_mt", 10000), ("grade", 1000), ("contained_metal", 321500000), ("grade_unit", "%")],

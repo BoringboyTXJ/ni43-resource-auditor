@@ -90,7 +90,7 @@ Pilbara 是 JORC，应明确传 `--allow-jorc --pages 2`。开发标注只覆盖
 
 ## 5. Evolution log 与复跑
 
-失败自动追加到 `data/evolution.jsonl`；从失败修订为通过时追加 `resolution`。新的文档可用其他文档的成功修订作示例，当前 PDF 的 SHA-256 排除，不读取 truth。
+失败自动追加到 `data/evolution.jsonl`；解析器回退记录为 `degradation`；从失败修订为通过时追加 `resolution`。新的文档可用其他文档的成功修订作示例，当前 PDF 的 SHA-256 排除，不读取 truth。
 
 ```bash
 uv run --frozen resource-auditor replay --pdf-dir data/public --log data/evolution.jsonl --output artifacts/replay.json

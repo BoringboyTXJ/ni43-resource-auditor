@@ -95,6 +95,11 @@ def audit(
             models=models,
         )
 
+    if log_events and document.parser_notes:
+        append_event(
+            settings.evolution_log,
+            {"kind": "degradation", **event_context, "round": 0, "reasons": document.parser_notes},
+        )
     if document.issues:
         if log_events:
             append_event(
