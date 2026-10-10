@@ -47,7 +47,7 @@ docker compose up --build -d
 
 ## 3. 评审方上传自己的文件
 
-网页第一步上传任意符合题目范围的 PDF，可选填资源表 PDF 页码。空页码自动选择；大报告超过上下文预算会要求选页。页码从 1 开始，与印刷页标签可能不同。
+网页第一步上传任意符合题目范围的 PDF，可选填资源表 PDF 页码。空页码按类别、表头和数值行自动定位，不扩入普通相邻正文；结果列出的选择页仍须核对。无法核验的扫描页会阻止接受，大报告超过上下文预算会要求选页。页码从 1 开始，与印刷页标签可能不同。
 
 下载结果 JSON 后，在网页第二步分别上传结果和评审方 ground truth。评分路径不会调用模型或追加演化记录。若 JSON 字段命名不同，按 [DATA_NOTES.md](DATA_NOTES.md) 显式填写映射；不要先把答案放进提示词。
 
@@ -79,6 +79,14 @@ uv run --frozen python scripts/run_public_eval.py
 
 下载器只接受 manifest 的固定 SHA-256，报告改变则停止。评测脚本在两个模型完成后才加载 truth，结果保存在 `artifacts/public/`，真实失败也计入结果；它禁用 few-shot，以便给出清楚的初始成绩。
 
+核验不指定页码的默认上传路径：
+
+```bash
+uv run --frozen python scripts/run_public_eval.py --automatic --case barrick-reko-diq --case kinross-great-bear
+```
+
+默认保存到 `artifacts/automatic/`，可用 `--output-dir` 指定目录。输出包含自动选择页、每轮规则/模型失败和状态；不会拿只覆盖指定表格的开发 truth 给全范围输出评分。默认路径的字段准确率需要对实际抽取范围另外独立标注。
+
 得到某份真实的 `accepted` 结果后，可注入一个明显错误，验证独立 Qwen 审核和规则门槛：
 
 ```bash
@@ -86,6 +94,14 @@ uv run --frozen python scripts/run_adversarial_eval.py kinross-great-bear
 ```
 
 该脚本把第一行矿石量乘以 1000，并保持原文证据不变；三轮固定重放错误候选、调用真实 Critic，检查最终弃答。它是受控故障测试，不是重新运行强模型的端到端准确率；不写演化日志以免污染正常修订示例。
+
+支持 `--fault coupled-units`（矿石/金属两列同时错百万倍、仍保持算术一致）、`--fault category`（借用其他位置类别标签）、`--fault omission`（遗漏资源行）。例如使用已有真实接受结果：
+
+```bash
+uv run --frozen python scripts/run_adversarial_eval.py pilbara-jorc --fault coupled-units --result-dir artifacts/public --output artifacts/coupled-units.json
+```
+
+注入类型有对应源数据前提，不符合时脚本报错。每种故障输出独立报告和完整逐轮结果；接口失败仍保留。如果没有三轮有效 Critic，脚本退出非零，不能声称真实审核验证通过。
 
 手动运行单份，例如 Kinross PDF 第 9 页：
 
@@ -130,7 +146,7 @@ MINERU_TIMEOUT_SECONDS=300
 
 `.mineru` 应在 Git 中排除。模型需要按[官方安装说明](https://opendatalab.github.io/MinerU/quick_start/)提前准备，首次下载可能较久；默认 standard，不需手工指定未核实的模型 endpoint。可先用 `MINERU_TIER=flash` 验证本机 SDK 文本解析链路，flash 不是扫描件质量验收。
 
-`auto` 检测开头中文文本或缺少文本层时优先尝试 MinerU；英文文本使用 pdfplumber。语言探测是启发式，英文封面下的中文正文可设 `PDF_PARSER=mineru` 明确选择；`pdfplumber` 可强制基础解析器。MinerU 仅处理选择页及前十页的标准证据；无文本的大扫描报告先指定资源表页码，避免无上限 OCR。最多 24 个资源相关页，超出弃答。
+`auto` 检测开头中文文本或选择页缺少可核验文本层时优先尝试 MinerU；混合文本/扫描 PDF 同样触发。英文文本使用 pdfplumber。语言探测是启发式，英文封面下的中文正文可设 `PDF_PARSER=mineru` 明确选择；`pdfplumber` 可强制基础解析器，但无法核验的扫描页仍会弃答。MinerU 仅处理选择页及前十页的标准证据；无文本的大扫描报告先指定资源表页码，避免无上限 OCR。最多 24 个资源相关页，超出弃答。
 
 当前桥接只调用本地 `parse()`，不会上传到 MinerU 官网。模型下载会联网；两个审核模型仍接收解析文本。MinerU 没装、超时、缺页或失效会记录原因；回退原文本层仍不足时转人工。原始页索引沿用，不将选出的第 19 页重编号为第 1 页。基础 Compose 容器内没有该独立解释器，主机 Windows 的解释器路径不能在 Linux 容器中使用；中文 OCR 可先使用本机启动方式。
 

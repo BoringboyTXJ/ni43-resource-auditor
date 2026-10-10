@@ -25,6 +25,10 @@
 
 引文必须出现在该页的权威解析文本中（NFKC 与空白归一化）。pdfplumber 的附加 TABLE VIEW 不能替代原始文本证据；MinerU 用按原始页分别渲染的 Markdown/HTML。原数字须以完整数值边界出现在行引文，不能从 1000 中截出 100。模型负责检查行列对应和语义，规则可否决，但无法证明所有版面关系或 OCR 文字都正确。
 
+单位校验绑定字段和类别：有完整 pdfplumber 表格单元格时，独立核对该类别的矿石、品位和金属列及原数字，保留合并列/行类别。无可用单元格时只接受可确认的文本表头单位对；列式表同时含 Indicated/Inferred 但无法确认列对应时弃答。`g/t` 中的 t 不是矿石量或金属量列的单位，Mt/kt 也不能由同页其他类别借用。未知倍率写法不会降级为无缩放单位。行内明确的类别不能被另一位置的 `category_quote` 覆盖。
+
+`Mineral Resources (inclusive of / exclusive of Mineral Reserves)` 是资源披露口径，不因这段说明误判为储量表；真正的 Mineral Reserves 表仍拒绝。某个字段的明确披露注释可解释印刷表头的异常单位，但不能凭质量守恒或数字大小补出单位。上述规则覆盖受支持的布局；无法确认时进入人工审核，不保证识别所有表格版式。
+
 行去重键：`(project, table, effective_date, basis, cutoff, category, commodity)`，逐项 NFKC、折叠空白并忽略大小写。完全重复的键导致拒绝，而不是随意保留一个数字。不同日期、表格、位置或口径的行不合并；total 与分项分开保留，禁止当成可直接求和的独立资产。
 
 整个项目合计使用 `basis=total`，即使原行标签包含项目前缀；原始标签仍保存在引文中。各矿区自身的合计则保留位置身份，避免多个矿区的 Total 合并。
@@ -71,6 +75,8 @@
 
 支持对象中指定数组键、顶层数组及行内点路径。映射只改字段名；**不自动推断或转换未知单位**，`tonnage_mt` 应确实是 Mt。使用 `evaluate ... --mapping mapping.json`，或网页映射区域。答案只进入 evaluate，不参与 Extractor、Critic 或日志示例。
 
+行字段映射保留顶层标准字段 `schema_version`、`document_id`、`source`。自定义哈希字段可显式配置 `"document_id_key": "metadata.pdf_sha256"`；它与已有 `document_id` 冲突时拒绝映射。提供了文档哈希就必须核验一致，映射不能绕过这项检查。
+
 ## 字段级评分与拒答
 
 每条 truth 对 `ore_mt/grade/contained_metal` 三个数值字段评分：`abs(predicted - expected) <= abs(expected) * 0.05`，边界包含；零值使用 1e-9 绝对容差。品位或金属量单位不一致分别扣对应字段。缺行的三个字段记错；每条重复或额外预测行额外增加三个错误字段。类别和矿种是匹配身份，错误类别无法匹配到正确答案。
@@ -78,8 +84,11 @@
 - `field_accuracy_all`：正确字段数 /（truth 字段数 + 额外预测字段数）。
 - `accepted_field_accuracy`：正确字段数 / 所有已接受预测字段；无已接受字段时为 null。
 - `coverage`：匹配到的已接受行 / truth 行数。
-- `wrong_candidate_detected`：最后一轮候选与 truth 有缺行、额外行、单位或数值错误。
+- `wrong_candidate_detected`：最后一个 schema 有效候选与 truth 有缺行、额外行、单位或数值错误；后续响应截断或 schema 失败不会抹掉此前候选。
 - `wrong_candidate_rejected`：有错误候选时是否 abstain；没有错误候选时为 null。
+- `valid_candidate_attempts` / `last_valid_candidate_round`：有效候选数量 / 最后一个有效候选的轮次；无有效候选时轮次为 null。
+- `any_wrong_candidate_detected`：任一有效候选存在上述错误。
+- `wrong_candidate_revised`：此前存在错误候选，最后有效候选正确且最终 accepted；用于区分成功修订与直接拒答。
 
 以上“错误”根据独立答案定义，不由 Critic 自评。配置/网络失败且没有候选时无法判断错误候选拒绝能力；其覆盖率仍为零。全弃答不能得到虚假的 100% accuracy。`accepted_field_accuracy` 要与覆盖率和全量准确率一起解释。
 

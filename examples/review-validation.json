@@ -1,0 +1,332 @@
+{
+  "date": "2026-10-10",
+  "reviewed_snapshot": "98a48c4f18a0edd5b0a628ae12764c2f53e2673a",
+  "fix_code_commit": "d72ab1918fa3edce15e69a54e680dc2f3f44589e",
+  "local_checks": {
+    "pytest_passed": 80,
+    "independent_original_review_tests_passed": 9,
+    "ruff_check": "passed",
+    "ruff_format": "passed",
+    "compose_config": "passed"
+  },
+  "automatic_parser_probe": [
+    {
+      "id": "barrick-reko-diq",
+      "automatic_pages": [
+        19,
+        184
+      ],
+      "automatic_issues": [],
+      "automatic_parser_notes": [],
+      "automatic_context_chars": 14112,
+      "retained_candidate_rule_issues": [],
+      "seconds": 51.4
+    },
+    {
+      "id": "kinross-great-bear",
+      "automatic_pages": [
+        9,
+        154,
+        155,
+        156,
+        184
+      ],
+      "automatic_issues": [],
+      "automatic_parser_notes": [],
+      "automatic_context_chars": 27338,
+      "retained_candidate_rule_issues": [],
+      "seconds": 21.7
+    },
+    {
+      "id": "pilbara-jorc",
+      "automatic_pages": [
+        2,
+        5,
+        11
+      ],
+      "automatic_issues": [
+        "unverified_scan_pages: 11"
+      ],
+      "automatic_parser_notes": [
+        "mineru_not_configured; using original PDF text layer"
+      ],
+      "automatic_context_chars": 22554,
+      "retained_candidate_rule_issues": [],
+      "seconds": 24.6
+    }
+  ],
+  "automatic_live_attempts": [
+    {
+      "id": "barrick-reko-diq",
+      "models": {
+        "extractor": "deepseek-v4-pro",
+        "critic": "qwen3.8-max"
+      },
+      "reasoning_effort": {
+        "extractor": "low",
+        "critic": "low"
+      },
+      "parser": "pdfplumber",
+      "selected_pages": [
+        19,
+        184
+      ],
+      "selection_scope": "automatic",
+      "status": "abstain",
+      "rounds": 1,
+      "accepted_rows": 0,
+      "critic_scores": [
+        null
+      ],
+      "rule_issues": [
+        []
+      ],
+      "errors": [
+        "provider_http_429"
+      ],
+      "reasons": [
+        "provider_http_429"
+      ],
+      "seconds": 50.6,
+      "metrics": null,
+      "truth_scope": "Not scored: reference covers explicit pages only"
+    },
+    {
+      "id": "kinross-great-bear",
+      "models": {
+        "extractor": "deepseek-v4-pro",
+        "critic": "qwen3.8-max"
+      },
+      "reasoning_effort": {
+        "extractor": "low",
+        "critic": "low"
+      },
+      "parser": "pdfplumber",
+      "selected_pages": [
+        9,
+        154,
+        155,
+        156,
+        184
+      ],
+      "selection_scope": "automatic",
+      "status": "abstain",
+      "rounds": 1,
+      "accepted_rows": 0,
+      "critic_scores": [
+        null
+      ],
+      "rule_issues": [
+        []
+      ],
+      "errors": [
+        "provider_http_429"
+      ],
+      "reasons": [
+        "provider_http_429"
+      ],
+      "seconds": 24.2,
+      "metrics": null,
+      "truth_scope": "Not scored: reference covers explicit pages only"
+    }
+  ],
+  "controlled_fault_live_attempts": [
+    {
+      "case": "pilbara-jorc",
+      "mode": "controlled_fault_injection_with_live_critic",
+      "fault": "One Mt/Mt row relabelled t/t; both normalized masses divided by a million, arithmetic preserved",
+      "fault_id": "coupled-units",
+      "extractor_calls": "Replayed corrupted real candidate; no new extractor model calls",
+      "models": {
+        "extractor": "deepseek-v4-pro",
+        "critic": "qwen3.8-max"
+      },
+      "status": "abstain",
+      "rounds": 1,
+      "critic_scores": [
+        null
+      ],
+      "critiques": [
+        null
+      ],
+      "rule_issues": [
+        [
+          "row[0]:source_column_units_unverified_or_conflicting"
+        ]
+      ],
+      "errors": [
+        "provider_http_429"
+      ],
+      "metrics": {
+        "status": "abstain",
+        "tolerance": 0.05,
+        "field_accuracy_all": 0.0,
+        "accepted_field_accuracy": null,
+        "coverage": 0.0,
+        "correct_fields": 0,
+        "total_fields": 15,
+        "missing_rows": 5,
+        "unexpected_rows": 0,
+        "wrong_candidate_detected": true,
+        "wrong_candidate_rejected": true,
+        "valid_candidate_attempts": 1,
+        "last_valid_candidate_round": 1,
+        "any_wrong_candidate_detected": true,
+        "wrong_candidate_revised": false,
+        "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+      },
+      "script_exit_code": 1,
+      "live_critic_validation_passed": false
+    },
+    {
+      "case": "pilbara-jorc",
+      "mode": "controlled_fault_injection_with_live_critic",
+      "fault": "An explicit Inferred row relabelled Indicated using a label from elsewhere on the page; may also duplicate identity",
+      "fault_id": "category",
+      "extractor_calls": "Replayed corrupted real candidate; no new extractor model calls",
+      "models": {
+        "extractor": "deepseek-v4-pro",
+        "critic": "qwen3.8-max"
+      },
+      "status": "abstain",
+      "rounds": 1,
+      "critic_scores": [
+        null
+      ],
+      "critiques": [
+        null
+      ],
+      "rule_issues": [
+        [
+          "row[1]:duplicate_resource_row",
+          "row[1]:row_category_conflicts_with_output"
+        ]
+      ],
+      "errors": [
+        "provider_http_429"
+      ],
+      "metrics": {
+        "status": "abstain",
+        "tolerance": 0.05,
+        "field_accuracy_all": 0.0,
+        "accepted_field_accuracy": null,
+        "coverage": 0.0,
+        "correct_fields": 0,
+        "total_fields": 15,
+        "missing_rows": 5,
+        "unexpected_rows": 0,
+        "wrong_candidate_detected": true,
+        "wrong_candidate_rejected": true,
+        "valid_candidate_attempts": 1,
+        "last_valid_candidate_round": 1,
+        "any_wrong_candidate_detected": true,
+        "wrong_candidate_revised": false,
+        "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+      },
+      "script_exit_code": 1,
+      "live_critic_validation_passed": false
+    },
+    {
+      "case": "pilbara-jorc",
+      "mode": "controlled_fault_injection_with_live_critic",
+      "fault": "First eligible resource row omitted; remaining source evidence unchanged",
+      "fault_id": "omission",
+      "extractor_calls": "Replayed corrupted real candidate; no new extractor model calls",
+      "models": {
+        "extractor": "deepseek-v4-pro",
+        "critic": "qwen3.8-max"
+      },
+      "status": "abstain",
+      "rounds": 1,
+      "critic_scores": [
+        null
+      ],
+      "critiques": [
+        null
+      ],
+      "rule_issues": [
+        []
+      ],
+      "errors": [
+        "provider_http_429"
+      ],
+      "metrics": {
+        "status": "abstain",
+        "tolerance": 0.05,
+        "field_accuracy_all": 0.0,
+        "accepted_field_accuracy": null,
+        "coverage": 0.0,
+        "correct_fields": 0,
+        "total_fields": 15,
+        "missing_rows": 5,
+        "unexpected_rows": 0,
+        "wrong_candidate_detected": true,
+        "wrong_candidate_rejected": true,
+        "valid_candidate_attempts": 1,
+        "last_valid_candidate_round": 1,
+        "any_wrong_candidate_detected": true,
+        "wrong_candidate_revised": false,
+        "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+      },
+      "script_exit_code": 1,
+      "live_critic_validation_passed": false
+    }
+  ],
+  "historical_candidate_recheck": [
+    {
+      "id": "barrick-reko-diq",
+      "document_id": "8fb8624bffad15101f86a5a21eafd3a2d5e36a66a915c178715993cf564189ce",
+      "selected_pages": [
+        19
+      ],
+      "mode": "Historical ce3a9cd candidate rechecked by current rules; no new model calls",
+      "rule_issues": [],
+      "correct_fields": 30,
+      "total_fields": 30,
+      "coverage": 1.0
+    },
+    {
+      "id": "kinross-great-bear",
+      "document_id": "882046c5fb12d50c3624f4806c08be88db5902213d59658b55dab9360cc4e84f",
+      "selected_pages": [
+        9
+      ],
+      "mode": "Historical ce3a9cd candidate rechecked by current rules; no new model calls",
+      "rule_issues": [],
+      "correct_fields": 6,
+      "total_fields": 6,
+      "coverage": 1.0
+    },
+    {
+      "id": "pilbara-jorc",
+      "document_id": "86e630e479590662e522617f975671ac2f84bfb890d93d61abae4832d8e91e89",
+      "selected_pages": [
+        2
+      ],
+      "mode": "Historical ce3a9cd candidate rechecked by current rules; no new model calls",
+      "rule_issues": [],
+      "correct_fields": 15,
+      "total_fields": 15,
+      "coverage": 1.0
+    }
+  ],
+  "gateway_diagnosis": {
+    "status": 429,
+    "type": "GoUsageLimitError",
+    "also_checked": [
+      "deepseek-v4-flash",
+      "qwen3.7-plus"
+    ],
+    "fallback_status": 429,
+    "persistent_model_config_changed": false
+  },
+  "live_review_validation_complete": false,
+  "limitations": [
+    "Original review doubles do not prove Qwen had approved these faults in production.",
+    "Current gateway quota prevents fresh extraction or valid live critic results; failed attempts are not passed validation.",
+    "Automatic selection is heuristic and cannot prove full-report table coverage, especially for continuations.",
+    "Limited-page development truth must not score whole-scope outputs as whole-report accuracy.",
+    "Historical 51/51 is a rules recheck of selected tables, not fresh two-model evaluation.",
+    "No real Chinese OCR accuracy result or hidden-assessor PDF/JSON evaluation is available."
+  ]
+}
