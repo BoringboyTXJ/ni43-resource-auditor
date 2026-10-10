@@ -6,6 +6,8 @@
 
 `AuditResult` 包含 `schema_version`、文档标识、`status`、`requires_manual_review`、`selected_pages`、`selection_scope`、解析器及回退说明、最终行、每轮尝试、模型名和原因。`accepted` 的最终行经过全部门槛；`abstain` 的最终行为空，未经批准的行只放在 `attempts[].candidate`。
 
+候选 `unresolved` 与审核 `issues` 只记录阻断错误或目标字段的未解决歧义。两个角色各有可选的 `notes` 保存非阻断说明，例如未报告其他矿种、主动排除储量分类；备注保留在每轮结果中，但不抵消任何规则失败、低分、未批准或不完整。审核批准仍要求 `issues=[]`；单位本身无法确定时仍应弃答，不能仅凭数值大小解释为某个单位。旧结果省略 `notes` 时按空列表读取。
+
 | 行字段 | 含义与口径 |
 | --- | --- |
 | `project` / `table` | 项目与原表标识；表名用简短的 Table 1-1 等 |
@@ -24,6 +26,8 @@
 引文必须出现在该页的权威解析文本中（NFKC 与空白归一化）。pdfplumber 的附加 TABLE VIEW 不能替代原始文本证据；MinerU 用按原始页分别渲染的 Markdown/HTML。原数字须以完整数值边界出现在行引文，不能从 1000 中截出 100。模型负责检查行列对应和语义，规则可否决，但无法证明所有版面关系或 OCR 文字都正确。
 
 行去重键：`(project, table, effective_date, basis, cutoff, category, commodity)`，逐项 NFKC、折叠空白并忽略大小写。完全重复的键导致拒绝，而不是随意保留一个数字。不同日期、表格、位置或口径的行不合并；total 与分项分开保留，禁止当成可直接求和的独立资产。
+
+整个项目合计使用 `basis=total`，即使原行标签包含项目前缀；原始标签仍保存在引文中。各矿区自身的合计则保留位置身份，避免多个矿区的 Total 合并。
 
 ## Ground truth
 

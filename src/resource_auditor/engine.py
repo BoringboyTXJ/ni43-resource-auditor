@@ -17,6 +17,9 @@ Missing or censored fields are UNRESOLVED: do not invent numbers or back-calcula
 contained value. Preserve printed rounding.
 unresolved is ONLY for blocking uncertainties in eligible reported resource rows. The absence
 of other commodities, or intentional exclusion of Measured/M&I/Reserves, is not unresolved.
+Use notes for nonblocking context and explanations; do not invent an unresolved field merely
+to explain an absent commodity or excluded category. A genuine ambiguous value/unit remains
+unresolved even if a note explains it. Do not infer a unit solely from the magnitude of values.
 row_quote must be a literal original text row, not the pipe-delimited TABLE VIEW;
 for MinerU use literal per-page Markdown/HTML supplied
 as source. Chinese category names require an explicit Indicated/Inferred equivalence in
@@ -33,6 +36,9 @@ category column label in category_quote. Preserve the category's exact column al
 Use basis='in-situ', 'stockpiles', or 'total' for these groups; for deposit subgroups use the
 literal deposit/location name. Use concise table IDs such as 'Table 1-1'. Dashes across an
 entire category mean no reported resources, so skip that row rather than inventing zeroes.
+For the overall project aggregate, basis='total' even when the printed label includes the
+project name before 'Total'; preserve that literal label in row_quote. Keep deposit-specific
+totals separate by project/table/location identity; never merge distinct deposits or dates.
 On revision, re-read the source and repair feedback; never simply raise confidence.
 source_quote_hints are literal source windows to help repair failed quotations. They do not
 approve any value. Repair every deterministic quote failure even if a critic calls it a false
@@ -59,6 +65,11 @@ Score 1..10. Any unsupported field, omitted eligible row, wrong category, unreso
 or material mismatch must yield approved=false and score<8. Mark complete=false when rows are
 missing. approved=true requires score>=8, complete=true, and no issues. An empty extraction
 cannot be approved. Give actionable issues for the next revision. Prefer abstention to guessing.
+issues contains BLOCKING errors only. Put nonblocking contextual observations in notes;
+an approved candidate must have issues=[]. Do not demand an unresolved item to explain
+an intentionally excluded category or unreported commodity. An advisory note must never
+excuse an unsupported value, ambiguous unit, missing eligible row or deterministic failure.
+If a rule says a quote is not literal, it is blocking even if its meaning is equivalent.
 """
 
 

@@ -110,6 +110,36 @@ def test_accepted_requires_two_roles_and_independent_approval(settings, candidat
     assert [c[0] for c in client.calls] == ["extractor", "critic"]
 
 
+def test_nonblocking_notes_are_retained_without_becoming_errors(settings, candidate, document):
+    candidate.notes = ["Only gold is reported; copper is outside this table's scope."]
+    critique = Critique(
+        score=9,
+        approved=True,
+        complete=True,
+        issues=[],
+        notes=["The table's reporting constraint is descriptive rather than a numeric cut-off."],
+    )
+    result = audit(document, settings, FakeModels([candidate], critique))
+    assert result.status == "accepted" and len(result.attempts) == 1
+    assert result.attempts[0].candidate.notes == candidate.notes
+    assert result.attempts[0].critique.notes == critique.notes
+
+
+@pytest.mark.parametrize("blocking", ["rules", "unresolved", "critic"])
+def test_notes_never_override_any_blocking_gate(settings, candidate, document, blocking):
+    candidate.notes = ["Nonblocking explanation"]
+    critique = Critique(score=10, approved=True, complete=True, issues=[], notes=["Explanation"])
+    if blocking == "rules":
+        candidate.rows[0].ore_mt *= 1000
+    elif blocking == "unresolved":
+        candidate.unresolved = ["Contained value cannot be assigned to a column"]
+    else:
+        critique.issues = ["Wrong resource category"]
+    result = audit(document, settings, FakeModels([candidate], critique))
+    assert result.status == "abstain" and not result.rows
+    assert len(result.attempts) == 3
+
+
 def test_parser_fallback_is_logged_even_when_original_text_passes(settings, candidate, document):
     document.parser_notes = ["mineru_failed; using original PDF text layer"]
     result = audit(document, settings, FakeModels([candidate]))

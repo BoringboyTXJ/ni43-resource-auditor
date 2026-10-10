@@ -46,14 +46,24 @@ class ResourceRow(StrictModel):
 class Candidate(StrictModel):
     reporting_standard: Literal["NI43-101", "JORC", "unknown"]
     rows: list[ResourceRow] = Field(max_length=200)
-    unresolved: list[str] = Field(max_length=100)
+    unresolved: list[str] = Field(
+        max_length=100, description="Blocking uncertainties in eligible reported fields only"
+    )
+    notes: list[str] = Field(
+        default_factory=list, max_length=100, description="Nonblocking source/context observations"
+    )
 
 
 class Critique(StrictModel):
     score: int = Field(ge=1, le=10)
     approved: bool
     complete: bool
-    issues: list[str] = Field(max_length=100)
+    issues: list[str] = Field(
+        max_length=100, description="Blocking errors; approved=true requires this list to be empty"
+    )
+    notes: list[str] = Field(
+        default_factory=list, max_length=100, description="Nonblocking observations, never approval"
+    )
 
 
 class Attempt(StrictModel):
