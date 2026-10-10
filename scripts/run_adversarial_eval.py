@@ -107,6 +107,10 @@ def main():
         "fault_id": args.fault,
         "extractor_calls": "Replayed corrupted real candidate; no new extractor model calls",
         "models": result.models,
+        "critic_output_options": {
+            "json_schema": settings.critic.json_schema,
+            "enable_thinking": settings.critic.enable_thinking,
+        },
         "status": result.status,
         "rounds": len(result.attempts),
         "critic_scores": [a.critique.score if a.critique else None for a in result.attempts],

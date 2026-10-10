@@ -26,6 +26,26 @@ OpenCode Go 的 DeepSeek 使用 `/chat/completions`，Qwen 使用原生 `/messag
 
 其他提供方可替换两组 base URL、模型、key 和协议格式。base URL 应是模型端点前面的服务根地址，使用 HTTPS；HTTP 仅允许 loopback。不支持 `response_format` 的 chat 服务可设置 `LLM_JSON_MODE=false`；Anthropic 协议自动省略该参数，输出仍必须通过 schema 校验。JSON 无效、截断、接口失败不会产生假成功。
 
+也可使用独立的 DeepSeek 官方接口和阿里云 Qwen 接口。下面是本次对照测试的配置；阿里云地址必须使用自己工作空间的地址和密钥，模型权限以账户实际开放范围为准：
+
+```dotenv
+EXTRACTOR_BASE_URL=https://api.deepseek.com
+EXTRACTOR_MODEL=deepseek-v4-flash
+EXTRACTOR_API_FORMAT=chat
+EXTRACTOR_REASONING_EFFORT=low
+EXTRACTOR_JSON_SCHEMA=false
+EXTRACTOR_ENABLE_THINKING=
+CRITIC_BASE_URL=https://你的工作空间.cn-beijing.maas.aliyuncs.com/compatible-mode/v1
+CRITIC_MODEL=qwen3.8-max
+CRITIC_API_FORMAT=chat
+CRITIC_REASONING_EFFORT=low
+CRITIC_JSON_SCHEMA=true
+CRITIC_ENABLE_THINKING=true
+LLM_TIMEOUT_SECONDS=300
+```
+
+两个 `API_KEY` 仍只在本地填写。`JSON_SCHEMA=true` 按角色发送严格 JSON Schema，不支持时应设为 false；不会遇到报错后偷偷降级。`ENABLE_THINKING` 留空沿用提供方默认，true/false 显式开启/关闭；这两个选项仅用于 chat 协议。请求后仍执行本地完整 schema、规则和审核门槛。参数依据[阿里云结构化输出文档](https://help.aliyun.com/en/model-studio/qwen-structured-output)和[chat 协议文档](https://help.aliyun.com/en/model-studio/qwen-api-via-openai-chat-completions)。接口连通不等于审核质量合格；不同模型和思考设置的实测结果见 [EVAL_RESULTS.md](EVAL_RESULTS.md)。DeepSeek 的旧模型名可能映射到更新版本，见[官方模型说明](https://api-docs.deepseek.com/)；报告保留请求的模型标识。
+
 ## 2. 启动网页
 
 从仓库根目录执行：
@@ -85,7 +105,7 @@ uv run --frozen python scripts/run_public_eval.py
 uv run --frozen python scripts/run_public_eval.py --automatic --case barrick-reko-diq --case kinross-great-bear
 ```
 
-默认保存到 `artifacts/automatic/`，可用 `--output-dir` 指定目录。输出包含自动选择页、每轮规则/模型失败和状态；不会拿只覆盖指定表格的开发 truth 给全范围输出评分。默认路径的字段准确率需要对实际抽取范围另外独立标注。
+默认保存到 `artifacts/automatic/`，可用 `--output-dir` 指定目录。输出包含自动选择页、每轮规则/模型失败和状态，以及逐角色的结构化输出/思考设置。Barrick 和 Kinross 有单独的 automatic truth，分别覆盖 PDF 19/184 页的 20 行和 9/154/155/156/184 页的 32 行；只在自动选择页与标注范围完全相同时计分。其他范围不拿有限页 truth 评分。它们是单人按原页核对的公开开发标注，不是评审方答案，也不能证明全报告表格定位召回率。
 
 得到某份真实的 `accepted` 结果后，可注入一个明显错误，验证独立 Qwen 审核和规则门槛：
 

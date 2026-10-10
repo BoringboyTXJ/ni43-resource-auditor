@@ -15,6 +15,8 @@ Cu and Li2O; Li2O means oxide, not elemental lithium. Copy source numbers and or
 into evidence before converting. Mt=1e6 t, kt=1e3 t, Moz=1e6 oz, koz=1e3 oz.
 Missing or censored fields are UNRESOLVED: do not invent numbers or back-calculate a missing
 contained value. Preserve printed rounding.
+Multiplying a reported contained value by its explicit unit factor is normalization, not
+back-calculation. Back-calculation means deriving contained metal from ore times grade.
 unresolved is ONLY for blocking uncertainties in eligible reported resource rows. The absence
 of other commodities, or intentional exclusion of Measured/M&I/Reserves, is not unresolved.
 Use notes for nonblocking context and explanations; do not invent an unresolved field merely
@@ -36,6 +38,17 @@ category column label in category_quote. Preserve the category's exact column al
 Use basis='in-situ', 'stockpiles', or 'total' for these groups; for deposit subgroups use the
 literal deposit/location name. Use concise table IDs such as 'Table 1-1'. Dashes across an
 entire category mean no reported resources, so skip that row rather than inventing zeroes.
+Different table IDs are distinct reporting identities even when all numeric values repeat;
+retain their eligible rows separately. Deduplicate only identical identities within a table.
+Only totals explicitly classified Indicated or Inferred are eligible; an unclassified
+Sub-Total/Total combining Measured, Indicated, or Inferred categories is not an eligible row.
+Reported resource sensitivity rows at explicit cut-offs are distinct eligible estimates;
+preserve each cut-off and never merge them into a single headline estimate.
+An explicit field-specific disclosure note may resolve a malformed unit label, if it states
+the unit unambiguously and does not conflict with an explicit valid column multiplier.
+Quote that note with the intervening original text in header_quote; record the clarification
+in notes. Do not leave it unresolved merely because the malformed label also appears. If
+the note is ambiguous or conflicts with a valid printed unit, leave the field unresolved.
 For the overall project aggregate, basis='total' even when the printed label includes the
 project name before 'Total'; preserve that literal label in row_quote. Keep deposit-specific
 totals separate by project/table/location identity; never merge distinct deposits or dates.
@@ -55,11 +68,16 @@ Resources from Reserves, Indicated from combined M&I, Li2O from Li, and thousand
 Only Indicated and Inferred are eligible: NEVER require Measured, combined Measured & Indicated,
 Reserves, or an unreported commodity. Include eligible total and subgroup rows separately;
 do not remove totals just because their numbers duplicate subgroup values.
+This applies ONLY to totals explicitly classified Indicated or Inferred. Unclassified
+Sub-Total/Total rows that combine multiple resource categories are excluded; never require
+them or relabel them Indicated/Inferred even when some component categories are eligible.
 The output contract REQUIRES normalized Mt ore, g/t Au or % Cu/Li2O grade, and oz/t contained
 values. Original units are retained in evidence. Do not demand source units in normalized fields.
 The schema uses basis for group identity: in-situ, stockpiles, total, or a literal deposit/location.
 There is no separate location field. This is an intentional contract, not an ambiguity.
 Check that required reported contained values exist; a back-calculated value is not extraction.
+Converting a reported contained value by its explicit source unit factor IS extraction
+normalization. Only deriving a missing contained value from ore times grade is back-calculation.
 Consider rounding rather than requiring false precision. Check deterministic rule issues.
 Score 1..10. Any unsupported field, omitted eligible row, wrong category, unresolved ambiguity,
 or material mismatch must yield approved=false and score<8. Mark complete=false when rows are
@@ -70,6 +88,18 @@ an approved candidate must have issues=[]. Do not demand an unresolved item to e
 an intentionally excluded category or unreported commodity. An advisory note must never
 excuse an unsupported value, ambiguous unit, missing eligible row or deterministic failure.
 If a rule says a quote is not literal, it is blocking even if its meaning is equivalent.
+Different table IDs are separate reporting identities: identical values in two different
+tables are not duplicate rows. Deduplicate only identical identities in the same table.
+Reported resource sensitivity rows at explicit cut-offs are eligible within the supplied
+scope; require their cut-off identities rather than excluding them as a whole.
+An explicit field-specific note can resolve a malformed unit label; an ambiguous note or a
+conflict with a valid column multiplier cannot. Verify the literal note rather than assuming
+units from magnitude. If the note resolves the unit, its explanation belongs in notes.
+For example, raw contained 1.2 Mt with normalized contained_metal=1200000 and contained_unit=t
+is correct. Source and normalized units intentionally differ; this is not a blocking error.
+Apply the stated contract even for JORC: Measured and non-Au/Cu/Li2O commodities are excluded,
+and all-dash rows need no numeric output. Give only concise final findings in issues/notes;
+do not include deliberation, self-corrections, or hypothetical requirements in the JSON.
 """
 
 

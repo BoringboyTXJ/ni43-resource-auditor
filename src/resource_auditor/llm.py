@@ -81,7 +81,8 @@ class ModelClient:
         config = getattr(self.settings, role)
         system = (
             system
-            + "\nReturn only JSON matching this schema:\n"
+            + "\nReturn a JSON DATA INSTANCE matching the following schema. "
+            + "Do not return the schema itself or add schema keywords to the data:\n"
             + json.dumps(schema.model_json_schema())
         )
         body = {
@@ -108,8 +109,19 @@ class ModelClient:
             body["system"] = system
             body["messages"] = body["messages"][1:]
             headers.update({"x-api-key": config.api_key, "anthropic-version": "2023-06-01"})
-        if self.settings.json_mode and config.api_format == "chat":
+        if config.json_schema:
+            body["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": schema.__name__,
+                    "schema": schema.model_json_schema(),
+                    "strict": True,
+                },
+            }
+        elif self.settings.json_mode and config.api_format == "chat":
             body["response_format"] = {"type": "json_object"}
+        if config.enable_thinking is not None:
+            body["enable_thinking"] = config.enable_thinking
         if config.reasoning_effort:
             if config.api_format == "anthropic":
                 body["output_config"] = {"effort": config.reasoning_effort}

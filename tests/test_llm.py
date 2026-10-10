@@ -174,3 +174,53 @@ def test_large_reasoning_stream_does_not_consume_final_text_budget(monkeypatch):
     )
     monkeypatch.setattr(instance.opener, "open", lambda *a, **k: Stream(raw.encode()))
     assert instance.complete("critic", "test", {}, Critique).score == 9
+
+
+@pytest.mark.parametrize("thinking", [False, True, None])
+def test_opt_in_schema_and_thinking_are_sent_only_to_configured_role(monkeypatch, thinking):
+    instance = client()
+    instance.settings = replace(
+        instance.settings,
+        critic=replace(instance.settings.critic, json_schema=True, enable_thinking=thinking),
+    )
+    requests = []
+    raw = json.dumps(
+        {
+            "choices": [
+                {
+                    "finish_reason": "stop",
+                    "message": {
+                        "content": '{"score":9,"approved":true,"complete":true,"issues":[]}'
+                    },
+                }
+            ]
+        }
+    ).encode()
+
+    def respond(request, **kwargs):
+        requests.append(json.loads(request.data))
+        return io.BytesIO(raw)
+
+    monkeypatch.setattr(instance.opener, "open", respond)
+    assert instance.complete("critic", "test", {}, Critique).score == 9
+    instance.complete("extractor", "test", {}, Critique)
+    assert requests[0]["response_format"] == {
+        "type": "json_schema",
+        "json_schema": {"name": "Critique", "schema": Critique.model_json_schema(), "strict": True},
+    }
+    assert requests[0].get("enable_thinking") is thinking
+    if thinking is None:
+        assert "enable_thinking" not in requests[0]
+    assert requests[1]["response_format"] == {"type": "json_object"}
+    assert "enable_thinking" not in requests[1]
+
+
+def test_structured_output_does_not_trust_invalid_provider_response(monkeypatch):
+    instance = client()
+    instance.settings = replace(
+        instance.settings, critic=replace(instance.settings.critic, json_schema=True)
+    )
+    raw = b'{"choices":[{"finish_reason":"stop","message":{"content":"{\\"score\\":11}"}}]}'
+    monkeypatch.setattr(instance.opener, "open", lambda *a, **k: io.BytesIO(raw))
+    with pytest.raises(ModelError, match="provider_invalid_json_or_schema"):
+        instance.complete("critic", "test", {}, Critique)

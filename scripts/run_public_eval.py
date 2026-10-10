@@ -29,7 +29,7 @@ def main():
     parser.add_argument(
         "--automatic",
         action="store_true",
-        help="Upload whole PDFs without page hints; do not score against limited-page truth",
+        help="Upload whole PDFs; score only if an independent reference covers selected pages",
     )
     parser.add_argument("--case", action="append", help="Public manifest case ID (repeatable)")
     parser.add_argument("--output-dir", type=Path)
@@ -64,16 +64,29 @@ def main():
         save(output / (source["id"] + ".result.json"), result.model_dump())
         # Ground truth is loaded only after extraction and independent review are finished.
         metrics = None
-        if not args.automatic:
-            truth = load_truth((ROOT / "examples" / source["truth"]).read_bytes())
-            metrics = evaluate(result, truth)
-            save(output / (source["id"] + ".metrics.json"), metrics)
+        truth_scope = "Not scored: reference covers explicit pages only"
+        truth_file = source.get("automatic_truth") if args.automatic else source["truth"]
+        if truth_file:
+            truth = load_truth((ROOT / "examples" / truth_file).read_bytes())
+            if not args.automatic or truth.source.get("pdf_pages") == result.selected_pages:
+                metrics = evaluate(result, truth)
+                save(output / (source["id"] + ".metrics.json"), metrics)
+                truth_scope = truth.source["pdf_pages"]
+            else:
+                truth_scope = "Not scored: automatic pages differ from annotated scope"
         reports.append(
             {
                 "id": source["id"],
                 "models": result.models,
                 "reasoning_effort": {
                     role: getattr(settings, role).reasoning_effort
+                    for role in ("extractor", "critic")
+                },
+                "output_options": {
+                    role: {
+                        "json_schema": getattr(settings, role).json_schema,
+                        "enable_thinking": getattr(settings, role).enable_thinking,
+                    }
                     for role in ("extractor", "critic")
                 },
                 "parser": result.parser,
@@ -92,9 +105,7 @@ def main():
                 "metrics": {k: v for k, v in metrics.items() if k != "details"}
                 if metrics
                 else None,
-                "truth_scope": "Not scored: reference covers explicit pages only"
-                if args.automatic
-                else source["pages"],
+                "truth_scope": truth_scope,
             }
         )
         print(json.dumps(reports[-1], ensure_ascii=False), flush=True)

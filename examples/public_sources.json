@@ -7,7 +7,8 @@
     "pages": "19",
     "standard": "NI43-101",
     "truth": "barrick-reko-diq.truth.json",
-    "note": "Table 1-1 only; 100% basis, not Barrick's attributable 50%."
+    "note": "Table 1-1 only; 100% basis, not Barrick's attributable 50%.",
+    "automatic_truth": "barrick-reko-diq.automatic.truth.json"
   },
   {
     "id": "kinross-great-bear",
@@ -17,7 +18,8 @@
     "pages": "9",
     "standard": "NI43-101",
     "truth": "kinross-great-bear.truth.json",
-    "note": "PDF page 9, printed page 1; Table 1-1, thousands of tonnes/ounces."
+    "note": "PDF page 9, printed page 1; Table 1-1, thousands of tonnes/ounces.",
+    "automatic_truth": "kinross-great-bear.automatic.truth.json"
   },
   {
     "id": "pilbara-jorc",

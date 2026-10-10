@@ -356,3 +356,73 @@ def test_disclosure_note_cannot_override_conflicting_column_multiplier(
     text = document.context + "\nContained metal is reported in millions of tonnes of copper."
     document.pages[1] = document.context = text
     assert audit(document, settings, BlindHighScore([candidate])).status == "abstain"
+
+
+def test_borderless_vertical_category_is_bound_to_its_own_header(candidate, document):
+    row = candidate.rows[0]
+    row.evidence.header_quote = "Ore Tonnes (Mt) Cu Grade (%) Copper (Mt) INDICATED"
+    row.evidence.row_quote = "Pit 100 1.00 1.0"
+    row.evidence.category_quote = "INDICATED"
+    document.pages[1] = (
+        "NI 43-101 Mineral Resources\n"
+        + row.evidence.header_quote
+        + "\n"
+        + row.evidence.row_quote
+        + "\n"
+        + "Ore Tonnes (Mt) Cu Grade (%) Copper (Mt) INFERRED\nPit 20 1.00 0.2"
+    )
+    assert validate_candidate(candidate, document, False) == []
+    # The old Indicated header cannot support a row in the later Inferred block.
+    row.evidence.row_quote = "Pit 20 1.00 0.2"
+    row.evidence.ore_raw, row.evidence.contained_raw = "20", "0.2"
+    row.ore_mt, row.contained_metal = 20, 200000
+    assert "row[0]:category_column_alignment_unverified" in validate_candidate(
+        candidate, document, False
+    )
+
+
+@pytest.mark.parametrize(
+    "intervening",
+    [
+        "Ore Tonnes (kt) Cu Grade (%) Copper (kt)",
+        "Table 2: New Mineral Resources",
+        "Measured",
+        "Indicated Inferred",
+    ],
+)
+def test_borderless_header_cannot_cross_a_new_table_or_unit_block(candidate, document, intervening):
+    row = candidate.rows[0]
+    row.evidence.header_quote = "Ore Tonnes (Mt) Cu Grade (%) Copper (Mt) INDICATED"
+    row.evidence.row_quote = "Pit 100 1.00 1.0"
+    row.evidence.category_quote = "INDICATED"
+    document.pages[1] = (
+        "NI 43-101 Mineral Resources\n"
+        + row.evidence.header_quote
+        + "\n"
+        + intervening
+        + "\n"
+        + row.evidence.row_quote
+        + "\nInferred 20 1.00 0.2"
+    )
+    assert "row[0]:category_column_alignment_unverified" in validate_candidate(
+        candidate, document, False
+    )
+
+
+def test_borderless_repeated_numeric_row_is_ambiguous(candidate, document):
+    row = candidate.rows[0]
+    row.evidence.header_quote = "Ore Tonnes (Mt) Cu Grade (%) Copper (Mt) INDICATED"
+    row.evidence.row_quote = "Pit 100 1.00 1.0"
+    row.evidence.category_quote = "INDICATED"
+    document.pages[1] = (
+        "NI 43-101 Mineral Resources\n"
+        + row.evidence.header_quote
+        + "\n"
+        + row.evidence.row_quote
+        + "\n"
+        + "Ore Tonnes (Mt) Cu Grade (%) Copper (Mt) INFERRED\n"
+        + row.evidence.row_quote
+    )
+    assert "row[0]:category_column_alignment_unverified" in validate_candidate(
+        candidate, document, False
+    )

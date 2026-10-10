@@ -58,3 +58,5 @@ OCR 的证据是解析文本，两个模型并未直接审阅原始页面图像�
 本项目为本地单进程验收工具：每进程同时最多两份报告；日志使用进程内锁。基础 Docker 服务未安装大型 MinerU 运行时；容器中的中文 OCR 需要自行扩展镜像。没有用户权限、外网发布、分布式任务队列或 OCR 图像级交叉校验。不同模型标识无法证明网关没有将两个别名路由到相同底层模型，部署方应确认实际路由。
 
 模型接口支持 OpenAI-compatible `/chat/completions` 和原生 Anthropic `/messages`，分别设置角色的 `API_FORMAT=chat` 或 `anthropic`；支持流式响应和截断检查。开发验收按用户偏好使用 DeepSeek 抽取、Qwen 审核。OpenAI `/responses` 尚未接入。模型 API 会收到所选页面文本与少量跨文档修订示例；私密报告应使用获准的服务，并关闭不合适的 few-shot 共享。
+
+支持按角色选择严格 JSON Schema 与 Qwen 思考开关，默认不发送这些可选参数，须确认接口支持再启用。直连接口和 OpenCode Go 配置均见 [RUN.md](RUN.md)。公开自动范围标注单独保存在 `*.automatic.truth.json`；只有选页范围一致才评分，保持答案与模型提示隔离。

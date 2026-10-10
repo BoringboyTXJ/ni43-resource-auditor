@@ -4,7 +4,7 @@ from difflib import SequenceMatcher
 
 from .models import Candidate, ResourceRow
 from .pdf import NI_STANDARD_PATTERN, Document, normalized
-from .units import table_unit_check, text_unit_check
+from .units import mass_units, table_unit_check, text_unit_check
 
 ORE_FACTORS = {"Mt": 1.0, "kt": 0.001, "t": 0.000001}
 METAL_FACTORS = {
@@ -39,6 +39,27 @@ def row_key(row) -> tuple:
         normalized(str(getattr(row, f))).casefold()
         for f in ("project", "table", "effective_date", "basis", "cutoff", "category", "commodity")
     )
+
+
+def vertical_category_supported(row, page_text):
+    """Conservative fallback for a single-category header above a borderless body."""
+    header, quote = normalized(row.evidence.header_quote), normalized(row.evidence.row_quote)
+    category = row.category.casefold()
+    labels = {c.casefold() for c in re.findall(r"\b(Measured|Indicated|Inferred)\b", header, re.I)}
+    if labels != {category} or normalized(row.evidence.category_quote).casefold() != category:
+        return False
+    # Repeated quotations cannot establish which category block owns the numeric row.
+    if page_text.count(header) != 1 or page_text.count(quote) != 1:
+        return False
+    start, end = page_text.find(header) + len(header), page_text.find(quote)
+    if start > end:
+        return False
+    between = page_text[start:end]
+    labels = {c.casefold() for c in re.findall(r"\b(Measured|Indicated|Inferred)\b", between, re.I)}
+    if labels - {category}:
+        return False
+    # A new table or unit header closes the block; never borrow an earlier multiplier.
+    return not (mass_units(between) or re.search(r"\bTable\s+\d|g\s*/\s*t|%", between, re.I))
 
 
 def check_row(row: ResourceRow, document: Document) -> list[str]:
@@ -85,6 +106,7 @@ def check_row(row: ResourceRow, document: Document) -> list[str]:
         bound_units is None
         and not row_categories
         and re.search(r"\bIndicated\b.*\bInferred\b|\bInferred\b.*\bIndicated\b", page_text, re.I)
+        and not vertical_category_supported(row, page_text)
     ):
         errors.append("category_column_alignment_unverified")
     unit_patterns = {

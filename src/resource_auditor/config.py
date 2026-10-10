@@ -13,6 +13,8 @@ class RoleConfig:
     api_key: str
     api_format: str = "chat"
     reasoning_effort: str = ""
+    json_schema: bool = False
+    enable_thinking: bool | None = None
 
     def validate(self):
         parsed = urlsplit(self.base_url)
@@ -33,6 +35,12 @@ class RoleConfig:
             raise ValueError("API_FORMAT must be chat or anthropic")
         if self.reasoning_effort not in {"", "none", "low", "medium", "high", "xhigh", "max"}:
             raise ValueError("Invalid model reasoning effort")
+        if type(self.json_schema) is not bool or (
+            self.enable_thinking is not None and type(self.enable_thinking) is not bool
+        ):
+            raise ValueError("Model output/thinking options must be booleans")
+        if self.api_format != "chat" and (self.json_schema or self.enable_thinking is not None):
+            raise ValueError("JSON_SCHEMA and ENABLE_THINKING require the chat API format")
 
 
 @dataclass(frozen=True)
@@ -56,6 +64,12 @@ class Settings:
         load_dotenv(override=False)
 
         def role(prefix):
+            thinking = os.getenv(f"{prefix}_ENABLE_THINKING", "").strip().lower()
+            structured = os.getenv(f"{prefix}_JSON_SCHEMA", "false").strip().lower()
+            if thinking not in {"", "true", "false"}:
+                raise ValueError(f"{prefix}_ENABLE_THINKING must be empty, true, or false")
+            if structured not in {"true", "false"}:
+                raise ValueError(f"{prefix}_JSON_SCHEMA must be true or false")
             return RoleConfig(
                 *(
                     os.getenv(f"{prefix}_{key}", "").strip()
@@ -63,6 +77,8 @@ class Settings:
                 ),
                 api_format=os.getenv(f"{prefix}_API_FORMAT", "chat").strip().lower(),
                 reasoning_effort=os.getenv(f"{prefix}_REASONING_EFFORT", "").strip().lower(),
+                json_schema=structured == "true",
+                enable_thinking=(thinking == "true") if thinking else None,
             )
 
         return cls(

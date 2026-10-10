@@ -15,3 +15,11 @@ def test_public_annotations_have_verified_identity_and_distinct_rows():
         assert len({row_key(row) for row in truth.rows}) == len(truth.rows)
         assert truth.source["pdf_pages"] == [int(source["pages"])]
         assert truth.source["annotation_method"].startswith("Manual transcription")
+        if source.get("automatic_truth"):
+            automatic = GroundTruth.model_validate_json(
+                (root / source["automatic_truth"]).read_bytes()
+            )
+            assert automatic.document_id == source["sha256"]
+            assert len({row_key(row) for row in automatic.rows}) == len(automatic.rows)
+            assert set(truth.source["pdf_pages"]).issubset(automatic.source["pdf_pages"])
+            assert all(row.table for row in automatic.rows)
