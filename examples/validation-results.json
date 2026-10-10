@@ -1,0 +1,532 @@
+{
+  "evaluated_at": "2026-10-10T04:34:32.482715+00:00",
+  "scope": "Public development tables on explicitly selected pages; one-reviewer numerical annotations, not hidden assessor ground truth.",
+  "models": {
+    "extractor": "deepseek-v4-pro",
+    "critic": "qwen3.8-max"
+  },
+  "reasoning_effort": {
+    "extractor": "low",
+    "critic": "low"
+  },
+  "token_budgets": {
+    "extractor": 24000,
+    "critic": 6000
+  },
+  "initial_code_commit": "99b9aca",
+  "initial_runs": [
+    {
+      "id": "barrick-reko-diq",
+      "models": {
+        "extractor": "deepseek-v4-pro",
+        "critic": "qwen3.8-max"
+      },
+      "reasoning_effort": {
+        "extractor": "low",
+        "critic": "low"
+      },
+      "parser": "pdfplumber",
+      "status": "accepted",
+      "rounds": 2,
+      "seconds": 177.4,
+      "metrics": {
+        "status": "accepted",
+        "tolerance": 0.05,
+        "field_accuracy_all": 1.0,
+        "accepted_field_accuracy": 1.0,
+        "coverage": 1.0,
+        "correct_fields": 30,
+        "total_fields": 30,
+        "missing_rows": 0,
+        "unexpected_rows": 0,
+        "wrong_candidate_detected": false,
+        "wrong_candidate_rejected": null,
+        "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+      }
+    },
+    {
+      "id": "kinross-great-bear",
+      "models": {
+        "extractor": "deepseek-v4-pro",
+        "critic": "qwen3.8-max"
+      },
+      "reasoning_effort": {
+        "extractor": "low",
+        "critic": "low"
+      },
+      "parser": "pdfplumber",
+      "status": "abstain",
+      "rounds": 3,
+      "seconds": 173.6,
+      "metrics": {
+        "status": "abstain",
+        "tolerance": 0.05,
+        "field_accuracy_all": 0.0,
+        "accepted_field_accuracy": null,
+        "coverage": 0.0,
+        "correct_fields": 0,
+        "total_fields": 6,
+        "missing_rows": 2,
+        "unexpected_rows": 0,
+        "wrong_candidate_detected": false,
+        "wrong_candidate_rejected": null,
+        "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+      }
+    },
+    {
+      "id": "pilbara-jorc",
+      "models": {
+        "extractor": "deepseek-v4-pro",
+        "critic": "qwen3.8-max"
+      },
+      "reasoning_effort": {
+        "extractor": "low",
+        "critic": "low"
+      },
+      "parser": "pdfplumber",
+      "status": "accepted",
+      "rounds": 1,
+      "seconds": 91.5,
+      "metrics": {
+        "status": "accepted",
+        "tolerance": 0.05,
+        "field_accuracy_all": 1.0,
+        "accepted_field_accuracy": 1.0,
+        "coverage": 1.0,
+        "correct_fields": 15,
+        "total_fields": 15,
+        "missing_rows": 0,
+        "unexpected_rows": 0,
+        "wrong_candidate_detected": false,
+        "wrong_candidate_rejected": null,
+        "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+      }
+    }
+  ],
+  "earlier_paired_replay": {
+    "code_commit": "c1484a4",
+    "cases": [
+      {
+        "id": "barrick-reko-diq",
+        "few_shot_count": 0,
+        "baseline": {
+          "status": "abstain",
+          "rounds": 3,
+          "critic_scores": [
+            8,
+            9,
+            9
+          ],
+          "metrics": {
+            "status": "abstain",
+            "tolerance": 0.05,
+            "field_accuracy_all": 0.0,
+            "accepted_field_accuracy": null,
+            "coverage": 0.0,
+            "correct_fields": 0,
+            "total_fields": 30,
+            "missing_rows": 10,
+            "unexpected_rows": 0,
+            "wrong_candidate_detected": true,
+            "wrong_candidate_rejected": true,
+            "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+          }
+        },
+        "with_few_shots": {
+          "status": "abstain",
+          "rounds": 3,
+          "critic_scores": [
+            null,
+            8,
+            9
+          ],
+          "metrics": {
+            "status": "abstain",
+            "tolerance": 0.05,
+            "field_accuracy_all": 0.0,
+            "accepted_field_accuracy": null,
+            "coverage": 0.0,
+            "correct_fields": 0,
+            "total_fields": 30,
+            "missing_rows": 10,
+            "unexpected_rows": 0,
+            "wrong_candidate_detected": true,
+            "wrong_candidate_rejected": true,
+            "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+          }
+        }
+      },
+      {
+        "id": "kinross-great-bear",
+        "few_shot_count": 1,
+        "baseline": {
+          "status": "accepted",
+          "rounds": 1,
+          "critic_scores": [
+            10
+          ],
+          "metrics": {
+            "status": "accepted",
+            "tolerance": 0.05,
+            "field_accuracy_all": 1.0,
+            "accepted_field_accuracy": 1.0,
+            "coverage": 1.0,
+            "correct_fields": 6,
+            "total_fields": 6,
+            "missing_rows": 0,
+            "unexpected_rows": 0,
+            "wrong_candidate_detected": false,
+            "wrong_candidate_rejected": null,
+            "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+          }
+        },
+        "with_few_shots": {
+          "status": "accepted",
+          "rounds": 3,
+          "critic_scores": [
+            6,
+            9,
+            9
+          ],
+          "metrics": {
+            "status": "accepted",
+            "tolerance": 0.05,
+            "field_accuracy_all": 1.0,
+            "accepted_field_accuracy": 1.0,
+            "coverage": 1.0,
+            "correct_fields": 6,
+            "total_fields": 6,
+            "missing_rows": 0,
+            "unexpected_rows": 0,
+            "wrong_candidate_detected": false,
+            "wrong_candidate_rejected": null,
+            "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+          }
+        }
+      }
+    ]
+  },
+  "final_code_commit": "ce3a9cd",
+  "final_baseline_runs": [
+    {
+      "id": "barrick-reko-diq",
+      "status": "accepted",
+      "rounds": 1,
+      "critic_scores": [
+        9
+      ],
+      "attempt_errors": [
+        null
+      ],
+      "rule_issues": [
+        []
+      ],
+      "metrics": {
+        "status": "accepted",
+        "tolerance": 0.05,
+        "field_accuracy_all": 1.0,
+        "accepted_field_accuracy": 1.0,
+        "coverage": 1.0,
+        "correct_fields": 30,
+        "total_fields": 30,
+        "missing_rows": 0,
+        "unexpected_rows": 0,
+        "wrong_candidate_detected": false,
+        "wrong_candidate_rejected": null,
+        "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+      }
+    },
+    {
+      "id": "kinross-great-bear",
+      "status": "accepted",
+      "rounds": 2,
+      "critic_scores": [
+        null,
+        9
+      ],
+      "attempt_errors": [
+        "provider_response_incomplete",
+        null
+      ],
+      "rule_issues": [
+        [],
+        []
+      ],
+      "metrics": {
+        "status": "accepted",
+        "tolerance": 0.05,
+        "field_accuracy_all": 1.0,
+        "accepted_field_accuracy": 1.0,
+        "coverage": 1.0,
+        "correct_fields": 6,
+        "total_fields": 6,
+        "missing_rows": 0,
+        "unexpected_rows": 0,
+        "wrong_candidate_detected": false,
+        "wrong_candidate_rejected": null,
+        "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+      }
+    },
+    {
+      "id": "pilbara-jorc",
+      "status": "accepted",
+      "rounds": 1,
+      "critic_scores": [
+        9
+      ],
+      "attempt_errors": [
+        null
+      ],
+      "rule_issues": [
+        []
+      ],
+      "metrics": {
+        "status": "accepted",
+        "tolerance": 0.05,
+        "field_accuracy_all": 1.0,
+        "accepted_field_accuracy": 1.0,
+        "coverage": 1.0,
+        "correct_fields": 15,
+        "total_fields": 15,
+        "missing_rows": 0,
+        "unexpected_rows": 0,
+        "wrong_candidate_detected": false,
+        "wrong_candidate_rejected": null,
+        "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+      }
+    }
+  ],
+  "final_paired_replay": [
+    {
+      "id": "barrick-reko-diq",
+      "few_shot_count": 0,
+      "baseline": {
+        "status": "accepted",
+        "rounds": 1,
+        "critic_scores": [
+          9
+        ],
+        "attempt_errors": [
+          null
+        ],
+        "rule_issues": [
+          []
+        ],
+        "metrics": {
+          "status": "accepted",
+          "tolerance": 0.05,
+          "field_accuracy_all": 1.0,
+          "accepted_field_accuracy": 1.0,
+          "coverage": 1.0,
+          "correct_fields": 30,
+          "total_fields": 30,
+          "missing_rows": 0,
+          "unexpected_rows": 0,
+          "wrong_candidate_detected": false,
+          "wrong_candidate_rejected": null,
+          "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+        }
+      },
+      "with_few_shots": {
+        "status": "accepted",
+        "rounds": 1,
+        "critic_scores": [
+          9
+        ],
+        "attempt_errors": [
+          null
+        ],
+        "rule_issues": [
+          []
+        ],
+        "metrics": {
+          "status": "accepted",
+          "tolerance": 0.05,
+          "field_accuracy_all": 1.0,
+          "accepted_field_accuracy": 1.0,
+          "coverage": 1.0,
+          "correct_fields": 30,
+          "total_fields": 30,
+          "missing_rows": 0,
+          "unexpected_rows": 0,
+          "wrong_candidate_detected": false,
+          "wrong_candidate_rejected": null,
+          "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+        }
+      }
+    },
+    {
+      "id": "kinross-great-bear",
+      "few_shot_count": 1,
+      "baseline": {
+        "status": "accepted",
+        "rounds": 2,
+        "critic_scores": [
+          null,
+          9
+        ],
+        "attempt_errors": [
+          "provider_response_incomplete",
+          null
+        ],
+        "rule_issues": [
+          [],
+          []
+        ],
+        "metrics": {
+          "status": "accepted",
+          "tolerance": 0.05,
+          "field_accuracy_all": 1.0,
+          "accepted_field_accuracy": 1.0,
+          "coverage": 1.0,
+          "correct_fields": 6,
+          "total_fields": 6,
+          "missing_rows": 0,
+          "unexpected_rows": 0,
+          "wrong_candidate_detected": false,
+          "wrong_candidate_rejected": null,
+          "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+        }
+      },
+      "with_few_shots": {
+        "status": "accepted",
+        "rounds": 2,
+        "critic_scores": [
+          7,
+          9
+        ],
+        "attempt_errors": [
+          null,
+          null
+        ],
+        "rule_issues": [
+          [
+            "row[0]:header_quote_not_in_source",
+            "row[0]:unsupported_quote_or_page",
+            "row[1]:header_quote_not_in_source",
+            "row[1]:unsupported_quote_or_page"
+          ],
+          []
+        ],
+        "metrics": {
+          "status": "accepted",
+          "tolerance": 0.05,
+          "field_accuracy_all": 1.0,
+          "accepted_field_accuracy": 1.0,
+          "coverage": 1.0,
+          "correct_fields": 6,
+          "total_fields": 6,
+          "missing_rows": 0,
+          "unexpected_rows": 0,
+          "wrong_candidate_detected": false,
+          "wrong_candidate_rejected": null,
+          "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+        }
+      }
+    }
+  ],
+  "replay_log": {
+    "unchanged": true,
+    "sha256": "54d4e133437e070815ad2f089bf8b37706d3900c51a7f2a6317184c9efaf209e"
+  },
+  "missing_replay_documents": [],
+  "skipped_replay_cases": 0,
+  "controlled_fault_test": {
+    "case": "pilbara-jorc",
+    "mode": "controlled_fault_injection_with_live_critic",
+    "fault": "First row ore_mt multiplied by 1000; original source evidence unchanged",
+    "extractor_calls": "Replayed corrupted real candidate; no new extractor model calls",
+    "models": {
+      "extractor": "deepseek-v4-pro",
+      "critic": "qwen3.8-max"
+    },
+    "status": "abstain",
+    "rounds": 3,
+    "critic_scores": [
+      5,
+      5,
+      null
+    ],
+    "rule_issues": [
+      [
+        "row[0]:normalized_value_does_not_match_source"
+      ],
+      [
+        "row[0]:normalized_value_does_not_match_source"
+      ],
+      [
+        "row[0]:normalized_value_does_not_match_source"
+      ]
+    ],
+    "errors": [
+      null,
+      null,
+      "provider_response_incomplete"
+    ],
+    "metrics": {
+      "status": "abstain",
+      "tolerance": 0.05,
+      "field_accuracy_all": 0.0,
+      "accepted_field_accuracy": null,
+      "coverage": 0.0,
+      "correct_fields": 0,
+      "total_fields": 15,
+      "missing_rows": 5,
+      "unexpected_rows": 0,
+      "wrong_candidate_detected": true,
+      "wrong_candidate_rejected": true,
+      "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+    },
+    "complete_three_live_critic_rounds": false,
+    "verification_script_exit_code": 1
+  },
+  "earlier_controlled_fault_test": {
+    "code_commit": "c1484a4",
+    "case": "pilbara-jorc",
+    "mode": "controlled_fault_injection_with_live_critic",
+    "fault": "First row ore_mt multiplied by 1000; original source evidence unchanged",
+    "extractor_calls": "Replayed corrupted real candidate; no new extractor model calls",
+    "models": {
+      "extractor": "deepseek-v4-pro",
+      "critic": "qwen3.8-max"
+    },
+    "status": "abstain",
+    "rounds": 3,
+    "critic_scores": [
+      6,
+      5,
+      6
+    ],
+    "rule_issues": [
+      [
+        "row[0]:normalized_value_does_not_match_source"
+      ],
+      [
+        "row[0]:normalized_value_does_not_match_source"
+      ],
+      [
+        "row[0]:normalized_value_does_not_match_source"
+      ]
+    ],
+    "errors": [
+      null,
+      null,
+      null
+    ],
+    "metrics": {
+      "status": "abstain",
+      "tolerance": 0.05,
+      "field_accuracy_all": 0.0,
+      "accepted_field_accuracy": null,
+      "coverage": 0.0,
+      "correct_fields": 0,
+      "total_fields": 15,
+      "missing_rows": 5,
+      "unexpected_rows": 0,
+      "wrong_candidate_detected": true,
+      "wrong_candidate_rejected": true,
+      "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+    }
+  },
+  "interpretation": "One trial per mode, same frozen log, same code. No stable few-shot improvement is established; zero-example runs are independent repetitions, not few-shot treatments."
+}
