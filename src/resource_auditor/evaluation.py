@@ -25,11 +25,22 @@ def load_truth(raw: bytes, mapping: dict | None = None) -> GroundTruth:
                 row = row[part]
             return row
 
+        metadata = (
+            {key: data[key] for key in ("schema_version", "document_id", "source") if key in data}
+            if isinstance(data, dict)
+            else {}
+        )
+        if path := mapping.get("document_id_key"):
+            mapped_id = value(data, path)
+            if metadata.get("document_id") and mapped_id != metadata["document_id"]:
+                raise ValueError("Conflicting ground truth document hash mappings")
+            metadata["document_id"] = mapped_id
         data = {
+            **metadata,
             "rows": [
                 {target: value(row, path) for target, path in field_map.items()}
                 for row in source_rows
-            ]
+            ],
         }
         defaults = mapping.get("defaults", {})
         data["rows"] = [{**defaults, **row} for row in data["rows"]]
@@ -89,9 +100,8 @@ def evaluate(result: AuditResult, truth: GroundTruth, tolerance: float = 0.05) -
         details.append({"key": list(key), "fields": checks})
     total_fields = len(truth.rows) * len(FIELDS) + extras * len(FIELDS)
     accepted_fields = len(predictions) * len(FIELDS)
-    candidate_wrong = False
-    if result.attempts and result.attempts[-1].candidate:
-        last_rows = result.attempts[-1].candidate.rows
+
+    def candidate_is_wrong(last_rows):
         candidate_wrong = len(last_rows) != len(truth.rows)
         candidate_seen = set()
         for row in last_rows:
@@ -107,6 +117,13 @@ def evaluate(result: AuditResult, truth: GroundTruth, tolerance: float = 0.05) -
                     within_tolerance(getattr(row, f), getattr(target, f), tolerance) for f in FIELDS
                 )
             )
+        return candidate_wrong
+
+    valid_attempts = [attempt for attempt in result.attempts if attempt.candidate is not None]
+    candidate_wrong = (
+        candidate_is_wrong(valid_attempts[-1].candidate.rows) if valid_attempts else False
+    )
+    any_wrong = any(candidate_is_wrong(attempt.candidate.rows) for attempt in valid_attempts)
     return {
         "status": result.status,
         "tolerance": tolerance,
@@ -119,6 +136,12 @@ def evaluate(result: AuditResult, truth: GroundTruth, tolerance: float = 0.05) -
         "unexpected_rows": extras,
         "wrong_candidate_detected": candidate_wrong,
         "wrong_candidate_rejected": result.status == "abstain" if candidate_wrong else None,
+        "valid_candidate_attempts": len(valid_attempts),
+        "last_valid_candidate_round": valid_attempts[-1].round if valid_attempts else None,
+        "any_wrong_candidate_detected": any_wrong,
+        "wrong_candidate_revised": result.status == "accepted"
+        and any_wrong
+        and not candidate_wrong,
         "details": details,
         "note": "Ground truth is used only here, never in model prompts or evolution few-shots.",
     }

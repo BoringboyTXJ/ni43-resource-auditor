@@ -39,22 +39,58 @@ class Document:
     issues: list[str]
     parser: str = "pdfplumber"
     parser_notes: list[str] = field(default_factory=list)
+    tables: dict[int, list] = field(default_factory=dict)
 
 
 def resource_pages(texts: dict[int, str], count: int) -> list[int]:
     candidates = []
     for i, text in texts.items():
         flat = normalized(text)
+        lines = text.splitlines()
+        table_category = False
+        for j, line in enumerate(lines):
+            if not re.search(r"\b(?:Indicated|Inferred)\b|指示|指明|推断|推定", line, re.I):
+                continue
+            words = re.findall(r"[A-Za-z]{2,}", line)
+            category_header = bool(words) and all(
+                word.casefold()
+                in {
+                    "measured",
+                    "indicated",
+                    "inferred",
+                    "location",
+                    "total",
+                    "category",
+                    "classification",
+                    "resources",
+                    "resource",
+                    "mineral",
+                    "and",
+                }
+                for word in words
+            )
+            numeric_row = tabular_numbers(line) and len(words) <= 8
+            nearby = " ".join(lines[max(0, j - 6) : j + 7])
+            quantity_header = re.search(r"tonn|\bMt\b|\bkt\b|矿石量|吨", nearby, re.I)
+            grade_header = re.search(r"\bg/t\b|%|品位", nearby, re.I)
+            if (category_header or numeric_row) and quantity_header and grade_header:
+                table_category = True
+                break
         if (
-            re.search(r"\b(?:Indicated|Inferred)\b|指示|指明|推断|推定", flat, re.I)
+            table_category
             and re.search(r"resource|资源", flat, re.I)
-            and re.search(r"\d", flat)
+            and any(tabular_numbers(line) for line in lines)
             and re.search(r"tonn|\bMt\b|\bkt\b|\bg/t\b|ounces|\boz\b|%|吨|品位", flat, re.I)
         ):
             candidates.append(i)
-    return sorted(
-        {n for i in candidates for n in (i - 1, i, i + 1) if n in texts and 1 <= n <= count}
-    )
+    return sorted(candidates)
+
+
+def tabular_numbers(line: str) -> bool:
+    # Require data cells, not a caption, TOC entry, date, or a prose mention.
+    numbers = re.findall(r"(?<![\w/.-])\d[\d,]*(?:\.\d+)?(?![\w/.-])", line)
+    words = re.findall(r"[A-Za-z]{2,}", line)
+    return len(numbers) >= 3 and (len(words) <= 5 or bool(re.search(r"\d\s{2,}\d", line)))
 
 
 def read_pdf(data: bytes, filename: str, settings, pages: str = "") -> Document:
@@ -69,21 +105,32 @@ def read_pdf(data: bytes, filename: str, settings, pages: str = "") -> Document:
                 raise ValueError("PDF exceeds the 1000-page parser limit")
             selected = parse_pages(pages, len(pdf.pages)) if pages else []
             texts = {}
+            opaque_pages = []
+            blank_pages = []
             for i, page in enumerate(pdf.pages, 1):
                 if pages and i not in selected and i > 10:
                     continue
                 text = page.extract_text(layout=True) or ""
                 texts[i] = text
+                flat = normalized(text)
+                has_graphics = any(
+                    getattr(page, name, []) for name in ("images", "curves", "lines", "rects")
+                )
+                if len(flat) < 80 and (has_graphics or (not flat and not hasattr(page, "images"))):
+                    opaque_pages.append(i)
+                elif not flat and not has_graphics:
+                    blank_pages.append(i)
                 page.close()
             if not pages:
-                selected = resource_pages(texts, len(pdf.pages))
+                selected = sorted(set(resource_pages(texts, len(pdf.pages))) | set(opaque_pages))
             parser = "pdfplumber"
             parser_notes = []
             sample = " ".join(texts.get(i, "") for i in range(1, 11))
             chinese = len(re.findall(r"[\u4e00-\u9fff]", sample)) >= 20
             no_text = not any(normalized(texts.get(i, "")) for i in selected)
+            needs_ocr = set(selected) & set(opaque_pages)
             prefer_mineru = settings.pdf_parser == "mineru" or (
-                settings.pdf_parser == "auto" and (chinese or no_text)
+                settings.pdf_parser == "auto" and (chinese or no_text or needs_ocr)
             )
             if prefer_mineru:
                 if settings.mineru_python:
@@ -105,12 +152,24 @@ def read_pdf(data: bytes, filename: str, settings, pages: str = "") -> Document:
                             parser = "mineru:" + version
                             if not pages:
                                 selected = resource_pages(texts, len(pdf.pages))
+                            needs_ocr = {
+                                i for i in needs_ocr if len(normalized(texts.get(i, ""))) < 80
+                            }
                         except ValueError as exc:
                             if str(exc) == "mineru_missing_requested_pages":
                                 issues.append(str(exc))
                             parser_notes.append(str(exc) + "; using original PDF text layer")
                 else:
                     parser_notes.append("mineru_not_configured; using original PDF text layer")
+            if needs_ocr:
+                issues.append("unverified_scan_pages: " + ",".join(map(str, sorted(needs_ocr))))
+            blank_pages = [i for i in blank_pages if not normalized(texts.get(i, ""))]
+            if selected and any(i in blank_pages for i in selected):
+                parser_notes.append(
+                    "blank_pages_excluded: "
+                    + ",".join(str(i) for i in selected if i in blank_pages)
+                )
+                selected = [i for i in selected if i not in blank_pages]
             if not selected:
                 issues.append("no_resource_table_or_text_layer")
             if len(selected) > settings.max_selected_pages:
@@ -126,10 +185,12 @@ def read_pdf(data: bytes, filename: str, settings, pages: str = "") -> Document:
                 if standard_evidence
                 else []
             )
+            source_tables = {}
             for i in selected:
                 text = texts[i]
                 # Original page text remains authoritative; tables are only a second view.
                 tables = pdf.pages[i - 1].extract_tables() if parser == "pdfplumber" else []
+                source_tables[i] = tables
                 table_view = "\n".join(
                     " | ".join(c or "" for c in row) for table in tables for row in table
                 )
@@ -151,6 +212,7 @@ def read_pdf(data: bytes, filename: str, settings, pages: str = "") -> Document:
                 issues,
                 parser,
                 parser_notes,
+                source_tables,
             )
     except ValueError:
         raise

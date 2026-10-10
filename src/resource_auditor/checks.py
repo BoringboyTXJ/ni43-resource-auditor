@@ -4,6 +4,7 @@ from difflib import SequenceMatcher
 
 from .models import Candidate, ResourceRow
 from .pdf import NI_STANDARD_PATTERN, Document, normalized
+from .units import table_unit_check, text_unit_check
 
 ORE_FACTORS = {"Mt": 1.0, "kt": 0.001, "t": 0.000001}
 METAL_FACTORS = {
@@ -53,6 +54,9 @@ def check_row(row: ResourceRow, document: Document) -> list[str]:
     if quote not in page_text:
         errors.append("row_quote_not_in_source")
     category_quote = normalized(ev.category_quote)
+    row_categories = set(re.findall(r"\b(Indicated|Inferred)\b", quote, re.I))
+    if row_categories and {c.casefold() for c in row_categories} != {row.category.casefold()}:
+        errors.append("row_category_conflicts_with_output")
     category_supported = re.search(rf"\b{row.category}\b", quote, re.I)
     if category_quote:
         category_supported = category_quote in page_text and re.search(
@@ -64,11 +68,25 @@ def check_row(row: ResourceRow, document: Document) -> list[str]:
         r"Measured\s*(?:and|&|\+)\s*Indicated|\bM\s*&\s*I\b", quote + " " + category_quote, re.I
     ):
         errors.append("combined_category_is_not_indicated")
-    if re.search(r"\breserves?\b", header, re.I):
+    table_subject = re.sub(
+        r"\b(?:inclusive\s+of|exclusive\s+of|including|excluding)\s+(?:mineral\s+)?reserves?\b",
+        "",
+        header,
+        flags=re.I,
+    )
+    if re.search(r"\breserves?\b", table_subject, re.I):
         errors.append("reserve_table_is_not_a_resource_table")
     expected_grade_unit = "g/t" if row.commodity == "Au" else "%"
     if row.grade_unit != expected_grade_unit:
         errors.append("grade_unit_mismatch")
+    bound_units = table_unit_check(row, document.tables.get(ev.page, []), page_text)
+    errors.extend(text_unit_check(row, page_text) if bound_units is None else bound_units)
+    if (
+        bound_units is None
+        and not row_categories
+        and re.search(r"\bIndicated\b.*\bInferred\b|\bInferred\b.*\bIndicated\b", page_text, re.I)
+    ):
+        errors.append("category_column_alignment_unverified")
     unit_patterns = {
         "Mt": r"\bMt\b|million\s+ton",
         "kt": r"\bkt\b|thousand\s+ton|\(000\)|000\s*t",

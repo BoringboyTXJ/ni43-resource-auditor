@@ -1,5 +1,6 @@
 """Real two-model benchmark. Only independently scored public development data."""
 
+import argparse
 import json
 import time
 from pathlib import Path
@@ -24,15 +25,33 @@ class ProgressClient(ModelClient):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--automatic",
+        action="store_true",
+        help="Upload whole PDFs without page hints; do not score against limited-page truth",
+    )
+    parser.add_argument("--case", action="append", help="Public manifest case ID (repeatable)")
+    parser.add_argument("--output-dir", type=Path)
+    args = parser.parse_args()
     settings = Settings.from_env()
     settings.validate()
     reports = []
     sources = json.loads((ROOT / "examples/public_sources.json").read_text(encoding="utf-8"))
+    if args.case and not set(args.case).issubset({s["id"] for s in sources}):
+        parser.error("Unknown manifest case")
+    output = args.output_dir or ROOT / "artifacts" / ("automatic" if args.automatic else "public")
     for source in sources:
+        if args.case and source["id"] not in args.case:
+            continue
         started = time.monotonic()
-        print(f"CASE {source['id']} PDF pages {source['pages']}", flush=True)
+        scope = "automatic" if args.automatic else source["pages"]
+        print(f"CASE {source['id']} PDF pages {scope}", flush=True)
         path = ROOT / "data/public" / source["file"]
-        doc = read_pdf(path.read_bytes(), path.name, settings, source["pages"])
+        doc = read_pdf(
+            path.read_bytes(), path.name, settings, "" if args.automatic else source["pages"]
+        )
+        print(f"  selected={doc.selected_pages}; parser issues={doc.issues}", flush=True)
         if doc.document_id != source["sha256"]:
             raise ValueError("Source changed; re-check annotation before evaluation")
         result = audit(
@@ -42,11 +61,13 @@ def main():
             allow_jorc=source["standard"] == "JORC",
             use_few_shots=False,
         )
-        save(ROOT / "artifacts/public" / (source["id"] + ".result.json"), result.model_dump())
+        save(output / (source["id"] + ".result.json"), result.model_dump())
         # Ground truth is loaded only after extraction and independent review are finished.
-        truth = load_truth((ROOT / "examples" / source["truth"]).read_bytes())
-        metrics = evaluate(result, truth)
-        save(ROOT / "artifacts/public" / (source["id"] + ".metrics.json"), metrics)
+        metrics = None
+        if not args.automatic:
+            truth = load_truth((ROOT / "examples" / source["truth"]).read_bytes())
+            metrics = evaluate(result, truth)
+            save(output / (source["id"] + ".metrics.json"), metrics)
         reports.append(
             {
                 "id": source["id"],
@@ -56,14 +77,28 @@ def main():
                     for role in ("extractor", "critic")
                 },
                 "parser": result.parser,
+                "selected_pages": result.selected_pages,
+                "selection_scope": result.selection_scope,
                 "status": result.status,
                 "rounds": len(result.attempts),
+                "accepted_rows": len(result.rows),
+                "critic_scores": [
+                    a.critique.score if a.critique else None for a in result.attempts
+                ],
+                "rule_issues": [a.rule_issues for a in result.attempts],
+                "errors": [a.error for a in result.attempts],
+                "reasons": result.reasons,
                 "seconds": round(time.monotonic() - started, 1),
-                "metrics": {k: v for k, v in metrics.items() if k != "details"},
+                "metrics": {k: v for k, v in metrics.items() if k != "details"}
+                if metrics
+                else None,
+                "truth_scope": "Not scored: reference covers explicit pages only"
+                if args.automatic
+                else source["pages"],
             }
         )
         print(json.dumps(reports[-1], ensure_ascii=False), flush=True)
-        save(ROOT / "artifacts/public/summary.json", reports)
+        save(output / "summary.json", reports)
 
 
 if __name__ == "__main__":

@@ -22,18 +22,61 @@ ROOT = Path(__file__).resolve().parents[1]
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("case", help="Public manifest case ID with an accepted model result")
+    parser.add_argument(
+        "--fault",
+        choices=("ore-scale", "coupled-units", "category", "omission"),
+        default="ore-scale",
+    )
+    parser.add_argument("--result-dir", type=Path, default=ROOT / "artifacts/public")
+    parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     sources = json.loads((ROOT / "examples/public_sources.json").read_text(encoding="utf-8"))
     source = next((s for s in sources if s["id"] == args.case), None)
     if source is None:
         parser.error("Case not found in public manifest")
     original = AuditResult.model_validate_json(
-        (ROOT / "artifacts/public" / (args.case + ".result.json")).read_bytes()
+        (args.result_dir / (args.case + ".result.json")).read_bytes()
     )
     if original.status != "accepted":
         parser.error("First obtain a real accepted result; cannot inject a missing candidate")
     candidate = deepcopy(original.attempts[-1].candidate)
-    candidate.rows[0].ore_mt *= 1000
+    if args.fault == "ore-scale":
+        candidate.rows[0].ore_mt *= 1000
+        fault = "First row ore_mt multiplied by 1000; original source evidence unchanged"
+    elif args.fault == "coupled-units":
+        row = next(
+            (
+                r
+                for r in candidate.rows
+                if r.evidence.ore_unit == "Mt" and r.evidence.contained_raw_unit == "Mt"
+            ),
+            None,
+        )
+        if row is None:
+            parser.error("This fault needs a real Mt ore / Mt contained-metal source row")
+        row.evidence.ore_unit = row.evidence.contained_raw_unit = "t"
+        row.ore_mt /= 1_000_000
+        row.contained_metal /= 1_000_000
+        fault = "One Mt/Mt row relabelled t/t; both normalized masses divided by a million, arithmetic preserved"
+    elif args.fault == "category":
+        row = next(
+            (
+                r
+                for r in candidate.rows
+                if r.category == "Inferred" and "Inferred" in r.evidence.row_quote
+            ),
+            None,
+        )
+        if row is None or not any("Indicated" in r.evidence.row_quote for r in candidate.rows):
+            parser.error("This fault needs literal row-oriented Indicated and Inferred categories")
+        row.category = "Indicated"
+        row.evidence.category_quote = "Indicated"
+        fault = "An explicit Inferred row relabelled Indicated using a label from elsewhere on the page; may also duplicate identity"
+    else:
+        if len(candidate.rows) < 2:
+            parser.error("This fault needs multiple eligible rows")
+        candidate.rows.pop(0)
+        fault = "First eligible resource row omitted; remaining source evidence unchanged"
     settings = Settings.from_env()
     live = ModelClient(settings)
 
@@ -41,6 +84,7 @@ def main():
         def complete(self, role, system, payload, schema):
             if role == "extractor":
                 return deepcopy(candidate)
+            print("  calling live critic", flush=True)
             return live.complete(role, system, payload, schema)
 
     pdf = ROOT / "data/public" / source["file"]
@@ -59,17 +103,21 @@ def main():
     report = {
         "case": args.case,
         "mode": "controlled_fault_injection_with_live_critic",
-        "fault": "First row ore_mt multiplied by 1000; original source evidence unchanged",
+        "fault": fault,
+        "fault_id": args.fault,
         "extractor_calls": "Replayed corrupted real candidate; no new extractor model calls",
         "models": result.models,
         "status": result.status,
         "rounds": len(result.attempts),
         "critic_scores": [a.critique.score if a.critique else None for a in result.attempts],
+        "critiques": [a.critique.model_dump() if a.critique else None for a in result.attempts],
         "rule_issues": [a.rule_issues for a in result.attempts],
         "errors": [a.error for a in result.attempts],
         "metrics": evaluate(result, truth),
     }
-    save(ROOT / "artifacts/adversarial.json", report)
+    output = args.output or ROOT / "artifacts" / f"adversarial-{args.case}-{args.fault}.json"
+    save(output, report)
+    save(output.with_suffix(".result.json"), result.model_dump())
     print(json.dumps({k: v for k, v in report.items() if k != "metrics"}, ensure_ascii=False))
     if result.status != "abstain" or report["metrics"]["wrong_candidate_rejected"] is not True:
         raise SystemExit("Obvious injected error was not rejected")
