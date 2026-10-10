@@ -1,0 +1,1543 @@
+{
+  "record_version": "1.0",
+  "recorded_date": "2026-10-10",
+  "code_commit": "50e7ed69977ac9d974d165e928d27ca84148ee38",
+  "models": {
+    "extractor": "deepseek-v4-flash",
+    "critic": "qwen3.8-max"
+  },
+  "role_options": {
+    "extractor": {
+      "protocol": "chat",
+      "reasoning_effort": "low",
+      "json_schema": false,
+      "enable_thinking": null
+    },
+    "critic": {
+      "protocol": "chat",
+      "reasoning_effort": "low",
+      "json_schema": true,
+      "enable_thinking": true
+    }
+  },
+  "acceptance": {
+    "max_rounds": 3,
+    "minimum_critic_score": 8,
+    "requires_rule_pass": true,
+    "requires_approved_and_complete": true
+  },
+  "automated_checks": {
+    "repository_tests_passed": 99,
+    "independent_original_audit_tests_passed": 9,
+    "ruff_lint_passed": true,
+    "ruff_format_passed": true,
+    "compose_config_passed": true,
+    "code_ci_url": "https://github.com/BoringboyTXJ/ni43-resource-auditor/actions/runs/38048856585",
+    "code_ci_conclusion": "success",
+    "ci_container_build_and_runtime_passed": true,
+    "local_docker_runtime_checked": false
+  },
+  "development_trials": {
+    "note": "Preserved development calls during provider/schema/prompt migration, before the final 8721dea code. These are not controlled comparisons proving causality.",
+    "original_flash_automatic": [
+      {
+        "id": "barrick-reko-diq",
+        "models": {
+          "extractor": "deepseek-v4-flash",
+          "critic": "qwen3.7-flash"
+        },
+        "reasoning_effort": {
+          "extractor": "low",
+          "critic": ""
+        },
+        "parser": "pdfplumber",
+        "selected_pages": [
+          19,
+          184
+        ],
+        "selection_scope": "automatic",
+        "status": "abstain",
+        "rounds": 3,
+        "accepted_rows": 0,
+        "critic_scores": [
+          5,
+          null,
+          1
+        ],
+        "rule_issues": [
+          [
+            "extractor_reports_unresolved_fields"
+          ],
+          [
+            "extractor_reports_unresolved_fields"
+          ],
+          [
+            "extractor_reports_unresolved_fields"
+          ]
+        ],
+        "errors": [
+          null,
+          "provider_response_incomplete",
+          null
+        ],
+        "reasons": [
+          "Duplicate Rows: The candidate extraction includes identical data rows for Table 14-46 (page 184) which is a duplicate of Table 1-1 (page 19). This violates the requirement to extract distinct eligible rows and inflates the dataset with redundancy.",
+          "Unit Mismatch (contained_metal): For all entries, the extracted `contained_metal` values are in raw 'Mt' (million tonnes) or 'Moz' as printed in the source table headers/notes (e.g., 15 for Cu means 15 Mt Cu, 29 for Au means 29 Moz Au). However, the candidate fields `contained_unit` are set to 't' (tonnes) or 'oz'. 15 Mt = 15,000,000 t. While the numeric value in `contained_metal` (15000000.0) represents tonnes correctly, the unit declaration 't' implies a much smaller quantity if interpreted loosely, but more critically, the schema requires normalized units. More importantly, for Gold, the source unit is 'Moz' (Million Ounces). The candidate sets `contained_unit` to 'oz' but `contained_metal` to 29,000,000. This is a conversion error in logic: 29 Moz = 29,000,000 oz. The number matches the unit 'oz', but typically these schemas expect `contained_metal` in standard units consistent with `contained_unit`. Let's look closer: Source says 'Au (Moz)'. Value is 29. Candidate has `contained_metal`: 29000000.0 and `contained_unit`: 'oz'. 29,000,000 oz is correct. BUT, for Copper, Source says 'Cu (Mt)'. Value is 15. Candidate has `contained_metal`: 15000000.0 and `contained_unit`: 't'. 15,000,000 t is correct. So the numbers are converted to base units (t/oz). This is acceptable IF the contract requires base units. However, looking at the 'notes': 'contained metal is reported in millions of tonnes... and million troy ounces'. The candidate extracts 'contained_unit' as 't' and 'oz'. This is technically correct normalization. BUT, there is a major issue: The candidate lists 'Western Porphyries' as `basis`. The text says 'Location Tonnes ... Western Porphyries'. The header spans multiple lines. 'Western Porphyries' is the location description. The candidate uses 'Western Porphyries' as the basis. This is correct. \n    \n    Wait, let's re-read the 'issues' constraint: 'Any unsupported field, omitted eligible row, wrong category, unresolved ambiguity, or material mismatch must yield approved=false'.\n    \n    Major Issue: **Reserves vs Resources**. The note states 'Mineral Resources are inclusive of Mineral Reserves.' The table title is 'Reko Diq Mineral Resources Summary'. The candidate correctly identifies Category as 'Indicated' and 'Inferred'. It does NOT extract Reserves because they are not separated out. This is correct per the rule 'Only Indicated and Inferred are eligible'.\n    \n    Major Issue: **Basis Field**. The source table headers are 'Measured', 'Indicated', 'Meas+Ind', 'Inferred'. The rows are grouped by Location ('Western Porphyries', 'Tanjeel'). The candidate uses `basis` as 'Western Porphyries' or 'Tanjeel' or 'total'. The prompt states: 'The schema uses basis for group identity: in-situ, stockpiles, total, or a literal deposit/location.' This is compliant.\n    \n    Major Issue: **Duplicate Tables**. Extracting Page 184 as well as Page 19 is a clear error in scope management. The candidate should have recognized them as the same data point or excluded the redundant page. Listing them as separate rows introduces ambiguity and bloat. This is a 'material mismatch' in terms of unique data extraction.\n    \n    Major Issue: **Contained Unit Ambiguity**. The candidate notes an unresolved field regarding '(Mg/t)' typo. The candidate flags this in `unresolved`. The prompt says: 'issues contains BLOCKING errors only... Mark complete=false when rows are missing. approved=true requires score>=8, complete=true, and no issues.' The presence of `unresolved` items usually prevents approval if they indicate ambiguity in the data itself. Here, the ambiguity is noted. Is it blocking? The prompt says 'An advisory note must never excuse an unsupported value, ambiguous unit...'. The candidate put this in `unresolved` and also `notes`. If `unresolved` is populated, does it block? Usually yes, if it affects the correctness of the extraction. Here, the extraction converts 7.8 (Moz) to 7,800,000 oz. If the header was truly 'Mg/t' (Megagrams per tonne?), that would be % grade. But it's clearly a typo for Moz given the context and the 'Notes' section explicitly stating 'million troy ounces'. A human reader resolves this easily. However, the extractor flagged it. \n    \n    Let's look at the 'extractor_reports_unresolved_fields' rule_issue. This often triggers a fail. \n    \n    Also, check the **Grade Units**. \n    Cu: 0.42 %. Correct. \n    Au: 0.25 g/t. Correct. \n    \n    Check **Ore Mt**. \n    3,653 Mt. Correct. \n    \n    Check **Total Rows**. \n    The candidate includes Total rows for Indicated and Inferred. Correct. \n    \n    Why is it failing so hard? \n    1. **Redundancy**: Duplicate extraction of Page 184. This is a significant quality failure. \n    2. **Unresolved Items**: The candidate lists an unresolved item in the `unresolved` array. Even if justified, the presence of unresolved fields generally indicates incomplete cleaning or ambiguity handling that prevents a high score. \n    3. **Score**: Given the duplication and the unresolved flag, a low score is appropriate. \n    \n    Is there a deeper error? \n    Look at the `basis` field for the 'Total' rows. The candidate sets `basis` to 'total'. The source row label is 'Total'. This is correct. \n    \n    Look at the 'Western Porphyries' rows. The source has 'Western' on one line and 'Porphyries' on the next, visually grouping them. The text representation in the table view is 'Western\\nPorphyries'. The candidate combines this into 'Western Porphyries'. This is a reasonable interpretation of the 'Location' column. \n    \n    However, the **Table Identification** is messy. It extracts both Table 1-1 and Table 14-46. This is the primary reason for rejection. \n    \n    Also, check the **Contained Metal Calculation** for consistency. \n    Cu Indicated Total: Ore 3,930 Mt * 0.43% = 16.899 Mt. Reported 17 Mt. Matches. \n    Cu Inferred Total: Ore 1,378 Mt * 0.3% = 4.134 Mt. Reported 4.5 Mt? Wait. \n    Source Table: Inferred Cu Total Ore 1,378, Grade 0.3, Contained 4.5. \n    Math: 1378 * 0.003 = 4.134. \n    The table says 4.5. This is a discrepancy. \n    Let's check subtotals. \n    Western Porphyries Inferred Cu: 1,276 * 0.3 = 3.828. Reported 4.2. \n    Tanjeel Inferred Cu: 102 * 0.3 = 0.306. Reported 0.3. \n    Sum of subtotals: 4.2 + 0.3 = 4.5. \n    So the contained values are additive. The grades might be weighted averages or rounded differently. \n    The candidate extracted the values as printed. This is correct behavior (do not recalculate unless instructed to verify; extraction is faithful copy). \n    \n    The main blocking issue is the **Duplicate Data Extraction**. Extracting the same table twice from two different pages is a fundamental failure in deduplication or scope selection. \n    \n    Additionally, the `unresolved` list containing a known typo clarification suggests the model was unsure. While the note explains it, the `unresolved` flag remaining active is a negative signal. \n    \n    Score justification: \n    - Duplication: -3 points. \n    - Unresolved field: -2 points. \n    - Good structural mapping otherwise? Yes. \n    - Score: 5/10? Or lower? \n    The prompt says 'Any unsupported field... or material mismatch must yield approved=false and score<8.' \n    Duplication is a material mismatch/redundancy. \n    The presence of `unresolved` blocks `approved=true`. \n    I will give a score of 4 due to the obvious duplication and the unresolved flag, despite the accurate data transcription of the duplicate content. \n    \n    Wait, is 'Western Porphyries' one location or two? \n    Text: \n    'Western' \n    '- - - ...' \n    'Porphyries' \n    'Tanjeel - - - ...' \n    'Reko Diq' \n    '- - - ...' \n    'Total' \n    \n    It appears 'Western Porphyries' is a category, containing 'Tanjeel' and 'Reko Diq'? \n    Or is 'Western Porphyries' a specific zone, and 'Tanjeel' and 'Reko Diq' are deposits within it? \n    The indentation suggests 'Western Porphyries' is a header for the first block. \n    Row 1: Western Porphyries (indented under header?). Actually, the text layout is: \n    Location | Measured | Indicated | ... \n    Western Porphyries | - | 3,653 | ... \n    Tanjeel | - | 277 | ... \n    Reko Diq | - | 3,930 (This looks like a subtotal for WP?) | ... \n    Total | - | 3,930 (This is the Grand Total Indicated Cu?) | ... \n    \n    Let's check the Cu Indicated column sums. \n    Western Porphyries: 3,653. \n    Tanjeel: 277. \n    Sum: 3,930. \n    The row labeled 'Reko Diq' under Indicated has 3,930. This suggests 'Reko Diq' in this specific row position acts as the **Sum of the Western Porphyries block**? Or is 'Reko Diq' the whole project? \n    The Title is 'Reko Diq Project'. \n    Usually, tables summarize: \n    Deposit A \n    Deposit B \n    Total. \n    Here we have: \n    Western Porphyries (Value 3,653) \n    Tanjeel (Value 277) \n    Reko Diq (Value 3,930) -> This equals 3653+277. \n    Total (Value 3,930). \n    \n    This implies 'Reko Diq' is a sub-total for the 'Western Porphyries' category, OR 'Western Porphyries' and 'Tanjeel' are the only components of the 'Reko Diq' resource in this table? \n    Actually, looking at the Inferred Column: \n    Western Porphyries: 1,276. \n    Tanjeel: 102. \n    Sum: 1,378. \n    Row 'Reko Diq': 1,378. \n    Row 'Total': 1,378. \n    \n    So, 'Reko Diq' is effectively the sum of 'Western Porphyries' and 'Tanjeel'. And 'Total' is the same. \n    The candidate extracts: \n    1. Western Porphyries (Category Indicated, Cu). \n    2. Tanjeel (Category Indicated, Cu). \n    3. Total (Category Indicated, Cu). \n    It does NOT extract the 'Reko Diq' row as a separate deposit if it's just a subtotal? \n    The candidate has `basis: 'total'` for the 3,930 row. \n    It does NOT have a row for `basis: 'Reko Diq'` specifically distinct from Total? \n    In the JSON, for Cu Indicated, it has: \n    - Western Porphyries \n    - Tanjeel \n    - Total \n    \n    Is the 'Reko Diq' row (which mirrors Total) required? \n    The prompt says: 'Include eligible total and subgroup rows separately; do not remove totals just because their numbers duplicate subgroup values.' \n    The 'Reko Diq' row is a subtotal for the Western Porphyries/Tanjeel group? Or is it the Project Total? \n    Since 'Western Porphyries' and 'Tanjeel' seem to be the only items listed above 'Reko Diq', 'Reko Diq' is likely the **Project Level Subtotal**. \n    'Total' is also listed. \n    Are they distinct? Numerically identical. \n    The candidate treats 'Reko Diq' row (in the source text block) as the 'Total' row? \n    Source Text: \n    'Reko Diq \\n 3,930 ...' \n    'Total \\n ...' (Wait, where is the Total row for Cu?) \n    Looking at the PDF text provided: \n    'Reko Diq \\n 3,930 0.43 17 ...' \n    'Total \\n (Empty?)' \n    Actually, the text block for Cu ends after 'Reko Diq'. There is no separate 'Total' row with numbers below it for Cu? \n    Let's look at the Table View: \n    Row: Reko Diq / Total \n    It seems 'Reko Diq' and 'Total' might be on the same line or the 'Total' label applies to the 'Reko Diq' line? \n    In the Table View: \n    'Reko Diq\\nTotal | | | | | | 3,930...' \n    This implies the Label is 'Reko Diq Total' or the Row is 'Reko Diq' and the Next Row is 'Total' but it's blank? \n    No, the pipe separators show: \n    `Reko Diq\nTotal | ... | 3,930 ...` \n    This suggests the cell content is 'Reko Diq\nTotal'. \n    The candidate extracted `basis: 'total'`. This is a simplification. \n    Is 'Reko Diq' a distinct category? \n    If 'Western Porphyries' and 'Tanjeel' are deposits/sub-groups, 'Reko Diq' is the Group/Subtotal. \n    The candidate missed extracting a specific 'Reko Diq (Subtotal)' row if it's considered distinct from the final 'Total'. However, since the numbers are identical and the label is combined, treating it as 'Total' is a defensible choice, though 'Reko Diq' might be a better basis name if it's a specific pit shell aggregate. \n    But the bigger issue remains the duplication across pages. \n    \n    Final Decision: Score 4. Approved False. Complete True (all data present, just duplicated). Issues: Duplicate extraction, Unresolved ambiguity flagging.",
+          "critic_did_not_approve",
+          "critic_score_below_8",
+          "extractor_reports_unresolved_fields"
+        ],
+        "seconds": 378.4,
+        "metrics": null,
+        "truth_scope": "Not scored: reference covers explicit pages only"
+      },
+      {
+        "id": "kinross-great-bear",
+        "models": {
+          "extractor": "deepseek-v4-flash",
+          "critic": "qwen3.7-flash"
+        },
+        "reasoning_effort": {
+          "extractor": "low",
+          "critic": ""
+        },
+        "parser": "pdfplumber",
+        "selected_pages": [
+          9,
+          154,
+          155,
+          156,
+          184
+        ],
+        "selection_scope": "automatic",
+        "status": "abstain",
+        "rounds": 3,
+        "accepted_rows": 0,
+        "critic_scores": [
+          2,
+          4,
+          7
+        ],
+        "rule_issues": [
+          [
+            "row[7]:category_column_alignment_unverified",
+            "row[8]:category_column_alignment_unverified",
+            "row[9]:category_column_alignment_unverified",
+            "row[10]:category_column_alignment_unverified",
+            "row[11]:category_column_alignment_unverified",
+            "row[12]:category_column_alignment_unverified",
+            "row[13]:category_column_alignment_unverified",
+            "row[14]:category_column_alignment_unverified",
+            "row[15]:category_column_alignment_unverified",
+            "row[16]:category_column_alignment_unverified",
+            "row[17]:category_column_alignment_unverified",
+            "row[18]:category_column_alignment_unverified",
+            "row[19]:category_column_alignment_unverified",
+            "row[20]:category_column_alignment_unverified",
+            "row[21]:category_column_alignment_unverified",
+            "row[22]:category_column_alignment_unverified",
+            "row[23]:category_column_alignment_unverified",
+            "row[24]:category_column_alignment_unverified",
+            "row[25]:category_column_alignment_unverified",
+            "row[26]:category_column_alignment_unverified",
+            "row[27]:category_column_alignment_unverified",
+            "row[28]:category_column_alignment_unverified"
+          ],
+          [
+            "row[7]:category_column_alignment_unverified",
+            "row[8]:category_column_alignment_unverified",
+            "row[9]:category_column_alignment_unverified",
+            "row[10]:category_column_alignment_unverified",
+            "row[11]:category_column_alignment_unverified",
+            "row[12]:category_column_alignment_unverified",
+            "row[13]:category_column_alignment_unverified",
+            "row[14]:category_column_alignment_unverified",
+            "row[15]:category_column_alignment_unverified",
+            "row[16]:category_column_alignment_unverified",
+            "row[17]:category_column_alignment_unverified",
+            "row[18]:category_column_alignment_unverified",
+            "row[19]:category_column_alignment_unverified",
+            "row[20]:category_column_alignment_unverified",
+            "row[21]:category_column_alignment_unverified",
+            "row[22]:category_column_alignment_unverified",
+            "row[23]:category_column_alignment_unverified",
+            "row[24]:category_column_alignment_unverified",
+            "row[25]:category_column_alignment_unverified",
+            "row[26]:category_column_alignment_unverified",
+            "row[27]:category_column_alignment_unverified",
+            "row[28]:category_column_alignment_unverified"
+          ],
+          [
+            "row[7]:category_column_alignment_unverified",
+            "row[8]:category_column_alignment_unverified",
+            "row[9]:category_column_alignment_unverified",
+            "row[10]:category_column_alignment_unverified",
+            "row[11]:category_column_alignment_unverified",
+            "row[12]:category_column_alignment_unverified",
+            "row[13]:category_column_alignment_unverified",
+            "row[14]:category_column_alignment_unverified",
+            "row[15]:category_column_alignment_unverified",
+            "row[16]:category_column_alignment_unverified",
+            "row[17]:category_column_alignment_unverified",
+            "row[18]:category_column_alignment_unverified",
+            "row[19]:category_column_alignment_unverified",
+            "row[20]:category_column_alignment_unverified",
+            "row[21]:category_column_alignment_unverified",
+            "row[22]:category_column_alignment_unverified",
+            "row[23]:category_column_alignment_unverified",
+            "row[24]:category_column_alignment_unverified",
+            "row[25]:category_column_alignment_unverified",
+            "row[26]:category_column_alignment_unverified",
+            "row[27]:category_column_alignment_unverified",
+            "row[28]:category_column_alignment_unverified"
+          ]
+        ],
+        "errors": [
+          null,
+          null,
+          null
+        ],
+        "reasons": [
+          "Incomplete Extraction: The candidate excludes TOTAL M&I rows based on a note, but the instructions state 'Include eligible total and subgroup rows separately; do not remove totals just because their numbers duplicate subgroup values.' While Measured is zero, the TOTAL M&I row is explicitly reported. More importantly, the inclusion of invalid rows (sensitivity) renders the extraction incomplete in terms of scope compliance.",
+          "Row[7] to Row[28]: The candidate extraction includes Table 14-3 'Open pit Mineral Resource sensitivity' data. These rows represent hypothetical resource quantities at various cut-off grades, not the reported definitive Mineral Resource estimate as stated in the summary tables (Table 14-1/1-1). Including sensitivity analysis as primary resource rows misrepresents the 'Indicated' and 'Inferred' categories defined by the effective date report. Only the base-case Indicated and Inferred totals from Table 14-1 should be extracted for the final estimate status.",
+          "Row[7] to Row[28]: The candidate fails to extract the Hinge Zone and Limb Zone Inferred resources separately from the combined 'Total UG' inferred row in Table 14-12? No, it does extract them individually (Rows 30-32). However, it extracts the 'Hinge and Limb Zones' combined total (Row 32) which is valid, but the inclusion of the entire Table 14-3 sensitivity dataset creates a massive block of non-compliant rows that violates the requirement to distinguish eligible reported reserves/resources from sensitivity cases.",
+          "critic_did_not_approve",
+          "critic_reports_incomplete_scope",
+          "critic_score_below_8",
+          "row[10]:category_column_alignment_unverified",
+          "row[11]:category_column_alignment_unverified",
+          "row[12]:category_column_alignment_unverified",
+          "row[13]:category_column_alignment_unverified",
+          "row[14]:category_column_alignment_unverified",
+          "row[15]:category_column_alignment_unverified",
+          "row[16]:category_column_alignment_unverified",
+          "row[17]:category_column_alignment_unverified",
+          "row[18]:category_column_alignment_unverified",
+          "row[19]:category_column_alignment_unverified",
+          "row[20]:category_column_alignment_unverified",
+          "row[21]:category_column_alignment_unverified",
+          "row[22]:category_column_alignment_unverified",
+          "row[23]:category_column_alignment_unverified",
+          "row[24]:category_column_alignment_unverified",
+          "row[25]:category_column_alignment_unverified",
+          "row[26]:category_column_alignment_unverified",
+          "row[27]:category_column_alignment_unverified",
+          "row[28]:category_column_alignment_unverified",
+          "row[7]:category_column_alignment_unverified",
+          "row[8]:category_column_alignment_unverified",
+          "row[9]:category_column_alignment_unverified"
+        ],
+        "seconds": 358.2,
+        "metrics": null,
+        "truth_scope": "Not scored: reference covers explicit pages only"
+      }
+    ],
+    "strict_nonthinking_flash_automatic": [
+      {
+        "id": "barrick-reko-diq",
+        "models": {
+          "extractor": "deepseek-v4-flash",
+          "critic": "qwen3.7-flash"
+        },
+        "reasoning_effort": {
+          "extractor": "low",
+          "critic": ""
+        },
+        "output_options": {
+          "extractor": {
+            "json_schema": false,
+            "enable_thinking": null
+          },
+          "critic": {
+            "json_schema": true,
+            "enable_thinking": false
+          }
+        },
+        "parser": "pdfplumber",
+        "selected_pages": [
+          19,
+          184
+        ],
+        "selection_scope": "automatic",
+        "status": "abstain",
+        "rounds": 3,
+        "accepted_rows": 0,
+        "critic_scores": [
+          null,
+          4,
+          null
+        ],
+        "rule_issues": [
+          [],
+          [
+            "row[6]:header_quote_not_in_source",
+            "row[6]:unsupported_quote_or_page",
+            "row[7]:header_quote_not_in_source",
+            "row[7]:unsupported_quote_or_page",
+            "row[8]:header_quote_not_in_source",
+            "row[8]:unsupported_quote_or_page",
+            "row[9]:header_quote_not_in_source",
+            "row[9]:unsupported_quote_or_page",
+            "row[16]:header_quote_not_in_source",
+            "row[16]:unsupported_quote_or_page",
+            "row[17]:header_quote_not_in_source",
+            "row[17]:unsupported_quote_or_page",
+            "row[18]:header_quote_not_in_source",
+            "row[18]:unsupported_quote_or_page",
+            "row[19]:header_quote_not_in_source",
+            "row[19]:unsupported_quote_or_page"
+          ],
+          []
+        ],
+        "errors": [
+          "provider_response_incomplete",
+          null,
+          "provider_response_incomplete"
+        ],
+        "reasons": [
+          "provider_response_incomplete"
+        ],
+        "seconds": 319.3,
+        "metrics": null,
+        "truth_scope": "Not scored: reference covers explicit pages only"
+      },
+      {
+        "id": "kinross-great-bear",
+        "models": {
+          "extractor": "deepseek-v4-flash",
+          "critic": "qwen3.7-flash"
+        },
+        "reasoning_effort": {
+          "extractor": "low",
+          "critic": ""
+        },
+        "output_options": {
+          "extractor": {
+            "json_schema": false,
+            "enable_thinking": null
+          },
+          "critic": {
+            "json_schema": true,
+            "enable_thinking": false
+          }
+        },
+        "parser": "pdfplumber",
+        "selected_pages": [
+          9,
+          154,
+          155,
+          156,
+          184
+        ],
+        "selection_scope": "automatic",
+        "status": "abstain",
+        "rounds": 3,
+        "accepted_rows": 0,
+        "critic_scores": [
+          4,
+          6,
+          6
+        ],
+        "rule_issues": [
+          [],
+          [],
+          []
+        ],
+        "errors": [
+          null,
+          null,
+          null
+        ],
+        "reasons": [
+          "Basis mismatch: Rows extracted from Table 14-2 (LP Zone) are labeled 'basis': 'LP Zone Open Pit' or 'LP Zone Underground'. The source table groups these under a single 'Zone' column with sub-labels OP and UG, but the primary reporting identity for Table 14-2 is 'LP Zone'. Using specific mining method as basis conflates it with the sensitivity table logic. More critically, the candidate includes duplicate rows for the same resource estimate from different tables (Table 1-1/14-1 vs Table 14-2) without distinguishing them by unique reporting context, leading to redundancy that violates the spirit of distinct reporting identities if not handled carefully. However, the main issue is the handling of totals.",
+          "Critical Error: Missing LP Zone Inferred Total: Table 14-2 lists OP Inferred (8,400) and UG Inferred (10,585). The sum is 18,985. Table 14-1 lists Total Inferred as 20,037. The difference (1,052) corresponds to Hinge/Limb Inferred (Table 14-12). So Table 14-2's LP Zone Inferred Total is indeed 18,985. The candidate does NOT include a row for 'LP Zone Inferred Total'. It only includes the sub-components. The contract states: 'Include eligible total and subgroup rows separately; do not remove totals just because their numbers duplicate subgroup values.' Since there is no explicit 'Total' row in Table 14-2 for Inferred, this might be excused, BUT the candidate fails to distinguish the 'basis' correctly. 'LP Zone Open Pit' is not a valid basis per the strict definition (in-situ, stockpiles, total, literal deposit/location). 'LP Zone' is the location/deposit. The basis should be 'LP Zone'. The cutoff distinguishes OP vs UG. By using 'LP Zone Open Pit' as basis, it creates ambiguity.",
+          "Duplicate rows across tables: The candidate includes identical data points for Project-Level Indicated and Inferred from both Table 1-1 and Table 14-1. While the prompt states 'Different table IDs are separate reporting identities', extracting the exact same numbers twice adds noise. More importantly, the candidate includes all sensitivity rows from Table 14-3. This is allowed ('Reported resource sensitivity rows... are eligible'). However, the combination of duplicates and potentially incorrect basis labeling reduces clarity.",
+          "Missing eligible total row: For Table 14-2, the LP Zone Inferred total (OP + UG) is 8,400 + 10,585 = 18,985 kt. The candidate extracts OP Inferred and UG Inferred separately but fails to extract the implicit or explicit total for LP Zone Inferred resources, which is an eligible category. While Table 14-1 provides the project-level total, Table 14-2 specifically breaks down LP Zone. The contract requires including eligible total and subgroup rows separately. The 'Total UG' in Table 14-12 is present, but the LP Zone Inferred Total is missing from the extraction despite being derivable and reported in Table 14-1 as part of the sum. Actually, looking at Table 14-2, there is no 'Total Inferred' row explicitly shown, only OP and UG. But Table 14-1 shows the total. The candidate has duplicates across tables. The bigger issue is the 'basis' field usage. The schema says 'basis for group identity: in-situ, stockpiles, total, or a literal deposit/location.' 'LP Zone Open Pit' is not a standard basis category like 'total' or 'in-situ'. It should likely be 'LP Zone' with a note on cut-off/method, or split into two entries with basis 'LP Zone'.",
+          "Unresolved Ambiguity in Basis: The basis field should reflect the group identity. For Table 14-2, the identity is 'LP Zone'. The distinction between OP and UG is defined by the cut-off and potentially a sub-category, but the 'basis' should be 'LP Zone'. Using 'LP Zone Open Pit' violates the instruction to use 'literal deposit/location' or 'total'. Similarly, 'Hinge Zone UG' should be 'Hinge Zone'. This misclassification affects the grouping logic.",
+          "critic_did_not_approve",
+          "critic_score_below_8"
+        ],
+        "seconds": 211.5,
+        "metrics": null,
+        "truth_scope": "Not scored: reference covers explicit pages only"
+      }
+    ],
+    "original_flash_schema_diagnostics": [
+      {
+        "role": "critic",
+        "validation_errors": [
+          {
+            "type": "extra_forbidden",
+            "loc": [
+              "additionalProperties"
+            ]
+          },
+          {
+            "type": "extra_forbidden",
+            "loc": [
+              "properties"
+            ]
+          }
+        ]
+      }
+    ],
+    "original_flash_faults": [
+      {
+        "status": "abstain",
+        "selected_pages": [
+          2
+        ],
+        "selection_scope": "explicit",
+        "accepted_rows": 0,
+        "rounds": 3,
+        "critic_scores": [
+          null,
+          null,
+          4
+        ],
+        "critic_approved": [
+          null,
+          null,
+          false
+        ],
+        "critic_complete": [
+          null,
+          null,
+          true
+        ],
+        "errors": [
+          "provider_invalid_json_or_schema",
+          "provider_invalid_json_or_schema",
+          null
+        ],
+        "rule_issues": [
+          [
+            "row[0]:source_column_units_unverified_or_conflicting"
+          ],
+          [
+            "row[0]:source_column_units_unverified_or_conflicting"
+          ],
+          [
+            "row[0]:source_column_units_unverified_or_conflicting"
+          ]
+        ],
+        "artifact_sha256": "413cc14a94626813da4a86690a3bb52c387941810db815230d452f6d9deb3891",
+        "fault": "coupled-units",
+        "mode": "fixed_fault_candidate_with_live_critic",
+        "metrics": {
+          "status": "abstain",
+          "tolerance": 0.05,
+          "field_accuracy_all": 0.0,
+          "accepted_field_accuracy": null,
+          "coverage": 0.0,
+          "correct_fields": 0,
+          "total_fields": 15,
+          "missing_rows": 5,
+          "unexpected_rows": 0,
+          "wrong_candidate_detected": true,
+          "wrong_candidate_rejected": true,
+          "valid_candidate_attempts": 3,
+          "last_valid_candidate_round": 3,
+          "any_wrong_candidate_detected": true,
+          "wrong_candidate_revised": false,
+          "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+        },
+        "script_exit_code": 1,
+        "all_three_critic_responses_valid": false
+      },
+      {
+        "status": "abstain",
+        "selected_pages": [
+          2
+        ],
+        "selection_scope": "explicit",
+        "accepted_rows": 0,
+        "rounds": 3,
+        "critic_scores": [
+          null,
+          5,
+          null
+        ],
+        "critic_approved": [
+          null,
+          false,
+          null
+        ],
+        "critic_complete": [
+          null,
+          true,
+          null
+        ],
+        "errors": [
+          "provider_response_incomplete",
+          null,
+          "provider_invalid_json_or_schema"
+        ],
+        "rule_issues": [
+          [
+            "row[1]:duplicate_resource_row",
+            "row[1]:row_category_conflicts_with_output"
+          ],
+          [
+            "row[1]:duplicate_resource_row",
+            "row[1]:row_category_conflicts_with_output"
+          ],
+          [
+            "row[1]:duplicate_resource_row",
+            "row[1]:row_category_conflicts_with_output"
+          ]
+        ],
+        "artifact_sha256": "3cdc9fdbd80ae932e11989334dafb03b5c126b67061bde34ea6b8e5b06ca0b95",
+        "fault": "category",
+        "mode": "fixed_fault_candidate_with_live_critic",
+        "metrics": {
+          "status": "abstain",
+          "tolerance": 0.05,
+          "field_accuracy_all": 0.0,
+          "accepted_field_accuracy": null,
+          "coverage": 0.0,
+          "correct_fields": 0,
+          "total_fields": 15,
+          "missing_rows": 5,
+          "unexpected_rows": 0,
+          "wrong_candidate_detected": true,
+          "wrong_candidate_rejected": true,
+          "valid_candidate_attempts": 3,
+          "last_valid_candidate_round": 3,
+          "any_wrong_candidate_detected": true,
+          "wrong_candidate_revised": false,
+          "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+        },
+        "script_exit_code": 1,
+        "all_three_critic_responses_valid": false
+      },
+      {
+        "status": "abstain",
+        "selected_pages": [
+          2
+        ],
+        "selection_scope": "explicit",
+        "accepted_rows": 0,
+        "rounds": 3,
+        "critic_scores": [
+          5,
+          5,
+          3
+        ],
+        "critic_approved": [
+          false,
+          false,
+          false
+        ],
+        "critic_complete": [
+          false,
+          false,
+          false
+        ],
+        "errors": [
+          null,
+          null,
+          null
+        ],
+        "rule_issues": [
+          [],
+          [],
+          []
+        ],
+        "artifact_sha256": "194a389baad2925c16ee1acf15612a5d1262a5f458f0322685806a1d202d4cdc",
+        "fault": "omission",
+        "mode": "fixed_fault_candidate_with_live_critic",
+        "metrics": {
+          "status": "abstain",
+          "tolerance": 0.05,
+          "field_accuracy_all": 0.0,
+          "accepted_field_accuracy": null,
+          "coverage": 0.0,
+          "correct_fields": 0,
+          "total_fields": 15,
+          "missing_rows": 5,
+          "unexpected_rows": 0,
+          "wrong_candidate_detected": true,
+          "wrong_candidate_rejected": true,
+          "valid_candidate_attempts": 3,
+          "last_valid_candidate_round": 3,
+          "any_wrong_candidate_detected": true,
+          "wrong_candidate_revised": false,
+          "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+        },
+        "script_exit_code": 0,
+        "all_three_critic_responses_valid": true
+      }
+    ],
+    "strict_nonthinking_flash_faults": [
+      {
+        "status": "abstain",
+        "selected_pages": [
+          2
+        ],
+        "selection_scope": "explicit",
+        "accepted_rows": 0,
+        "rounds": 3,
+        "critic_scores": [
+          2,
+          1,
+          4
+        ],
+        "critic_approved": [
+          false,
+          false,
+          false
+        ],
+        "critic_complete": [
+          true,
+          true,
+          false
+        ],
+        "errors": [
+          null,
+          null,
+          null
+        ],
+        "rule_issues": [
+          [
+            "row[0]:source_column_units_unverified_or_conflicting"
+          ],
+          [
+            "row[0]:source_column_units_unverified_or_conflicting"
+          ],
+          [
+            "row[0]:source_column_units_unverified_or_conflicting"
+          ]
+        ],
+        "artifact_sha256": "54a90fa0f79f621670949b87948d0cf44070af947350a4a2bff842cd36c9c679",
+        "fault": "coupled-units",
+        "mode": "fixed_fault_candidate_with_live_critic",
+        "metrics": {
+          "status": "abstain",
+          "tolerance": 0.05,
+          "field_accuracy_all": 0.0,
+          "accepted_field_accuracy": null,
+          "coverage": 0.0,
+          "correct_fields": 0,
+          "total_fields": 15,
+          "missing_rows": 5,
+          "unexpected_rows": 0,
+          "wrong_candidate_detected": true,
+          "wrong_candidate_rejected": true,
+          "valid_candidate_attempts": 3,
+          "last_valid_candidate_round": 3,
+          "any_wrong_candidate_detected": true,
+          "wrong_candidate_revised": false,
+          "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+        },
+        "script_exit_code": 0,
+        "all_three_critic_responses_valid": true
+      },
+      {
+        "status": "abstain",
+        "selected_pages": [
+          2
+        ],
+        "selection_scope": "explicit",
+        "accepted_rows": 0,
+        "rounds": 3,
+        "critic_scores": [
+          5,
+          3,
+          3
+        ],
+        "critic_approved": [
+          false,
+          false,
+          false
+        ],
+        "critic_complete": [
+          true,
+          false,
+          false
+        ],
+        "errors": [
+          null,
+          null,
+          null
+        ],
+        "rule_issues": [
+          [
+            "row[1]:duplicate_resource_row",
+            "row[1]:row_category_conflicts_with_output"
+          ],
+          [
+            "row[1]:duplicate_resource_row",
+            "row[1]:row_category_conflicts_with_output"
+          ],
+          [
+            "row[1]:duplicate_resource_row",
+            "row[1]:row_category_conflicts_with_output"
+          ]
+        ],
+        "artifact_sha256": "ab45177f126f5977ae37623012c27915ea28a08677bd82f74a9a432e7ac2a3c7",
+        "fault": "category",
+        "mode": "fixed_fault_candidate_with_live_critic",
+        "metrics": {
+          "status": "abstain",
+          "tolerance": 0.05,
+          "field_accuracy_all": 0.0,
+          "accepted_field_accuracy": null,
+          "coverage": 0.0,
+          "correct_fields": 0,
+          "total_fields": 15,
+          "missing_rows": 5,
+          "unexpected_rows": 0,
+          "wrong_candidate_detected": true,
+          "wrong_candidate_rejected": true,
+          "valid_candidate_attempts": 3,
+          "last_valid_candidate_round": 3,
+          "any_wrong_candidate_detected": true,
+          "wrong_candidate_revised": false,
+          "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+        },
+        "script_exit_code": 0,
+        "all_three_critic_responses_valid": true
+      }
+    ],
+    "valid_candidate_critic_controls": [
+      {
+        "mode": "live_critic_valid_candidate_control",
+        "models": {
+          "critic": "qwen3.7-flash"
+        },
+        "json_schema": true,
+        "enable_thinking": false,
+        "seconds": 17.1,
+        "score": 5,
+        "approved": false,
+        "complete": false,
+        "blocking_issue_count": 2,
+        "artifact_sha256": "f7af689c487cbb969ab02877b3d8feb4232316c13d172390f91be1677a82fa79"
+      },
+      {
+        "mode": "live_critic_valid_candidate_control",
+        "models": {
+          "critic": "qwen3.8-max"
+        },
+        "json_schema": true,
+        "enable_thinking": false,
+        "seconds": 4.7,
+        "score": 4,
+        "approved": false,
+        "complete": false,
+        "blocking_issue_count": 4,
+        "artifact_sha256": "bf7691b56bb8a1081d67add56b6102edb732a339e0a35ad4776457b7e49e8f3d"
+      },
+      {
+        "mode": "live_critic_valid_candidate_control",
+        "models": {
+          "critic": "qwen3.8-max"
+        },
+        "json_schema": true,
+        "enable_thinking": false,
+        "seconds": 3.9,
+        "score": 6,
+        "approved": false,
+        "complete": false,
+        "blocking_issue_count": 2,
+        "artifact_sha256": "ad60cc9689ab94f359be839a139ddaffbd8c8f51d2e37249aaaf17cd25c9a443"
+      },
+      {
+        "mode": "live_critic_valid_candidate_control",
+        "models": {
+          "critic": "qwen3.8-max"
+        },
+        "json_schema": true,
+        "enable_thinking": true,
+        "reasoning_effort": "low",
+        "seconds": 49.3,
+        "score": 9,
+        "approved": true,
+        "complete": true,
+        "blocking_issue_count": 0,
+        "artifact_sha256": "2467b3692cf7846b649c365af9af35067642988ea8515f2b26e5c7594f489b81"
+      }
+    ]
+  },
+  "public_annotation": {
+    "provenance": "One developer transcribed and visually checked publisher PDF pages; not publisher-certified truth or unseen assessor truth.",
+    "model_prompt_truth_access": false,
+    "automatic_scope_truth_prepared_before_max_baseline": true,
+    "files": [
+      {
+        "id": "barrick-reko-diq",
+        "pdf_sha256": "8fb8624bffad15101f86a5a21eafd3a2d5e36a66a915c178715993cf564189ce",
+        "truth_file": "examples/barrick-reko-diq.automatic.truth.json",
+        "truth_sha256": "0f6439ffb39e4900722df563a3f92991c246f8ff13ef3b3f7736dc85e29e64e4",
+        "pdf_pages": [
+          19,
+          184
+        ],
+        "rows": 20
+      },
+      {
+        "id": "kinross-great-bear",
+        "pdf_sha256": "882046c5fb12d50c3624f4806c08be88db5902213d59658b55dab9360cc4e84f",
+        "truth_file": "examples/kinross-great-bear.automatic.truth.json",
+        "truth_sha256": "e792b88ac2b8f4dae48d63cf4ebd0111533546d13fe22d0cbb0c9fc8e058ca01",
+        "pdf_pages": [
+          9,
+          154,
+          155,
+          156,
+          184
+        ],
+        "rows": 32
+      },
+      {
+        "id": "pilbara-jorc",
+        "pdf_sha256": "86e630e479590662e522617f975671ac2f84bfb890d93d61abae4832d8e91e89",
+        "truth_file": "examples/pilbara-jorc.truth.json",
+        "truth_sha256": "cc0a9bcaf58fcda97371803fe6cca00d4b3bc1ead9dde983022f763cddd86701",
+        "pdf_pages": [
+          2
+        ],
+        "rows": 5
+      }
+    ]
+  },
+  "full_file_automatic_no_few_shots": {
+    "note": "Full source PDFs uploaded with no requested pages. Accuracy covers only independently annotated automatically selected pages, not every resource page of each report.",
+    "cases": [
+      {
+        "id": "barrick-reko-diq",
+        "models": {
+          "extractor": "deepseek-v4-flash",
+          "critic": "qwen3.8-max"
+        },
+        "reasoning_effort": {
+          "extractor": "low",
+          "critic": "low"
+        },
+        "output_options": {
+          "extractor": {
+            "json_schema": false,
+            "enable_thinking": null
+          },
+          "critic": {
+            "json_schema": true,
+            "enable_thinking": true
+          }
+        },
+        "parser": "pdfplumber",
+        "selected_pages": [
+          19,
+          184
+        ],
+        "selection_scope": "automatic",
+        "status": "accepted",
+        "rounds": 1,
+        "accepted_rows": 20,
+        "critic_scores": [
+          9
+        ],
+        "rule_issues": [
+          []
+        ],
+        "errors": [
+          null
+        ],
+        "reasons": [],
+        "seconds": 148.1,
+        "truth_scope": [
+          19,
+          184
+        ],
+        "acquisition_code_commit": "8721deaac5fc4d57e9aa131888066640bc1270f4",
+        "original_metrics_before_basis_aliases": {
+          "status": "accepted",
+          "tolerance": 0.05,
+          "field_accuracy_all": 1.0,
+          "accepted_field_accuracy": 1.0,
+          "coverage": 1.0,
+          "correct_fields": 60,
+          "total_fields": 60,
+          "missing_rows": 0,
+          "unexpected_rows": 0,
+          "wrong_candidate_detected": false,
+          "wrong_candidate_rejected": null,
+          "valid_candidate_attempts": 1,
+          "last_valid_candidate_round": 1,
+          "any_wrong_candidate_detected": false,
+          "wrong_candidate_revised": false,
+          "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+        },
+        "current_metrics": {
+          "status": "accepted",
+          "tolerance": 0.05,
+          "field_accuracy_all": 1.0,
+          "accepted_field_accuracy": 1.0,
+          "coverage": 1.0,
+          "correct_fields": 60,
+          "total_fields": 60,
+          "missing_rows": 0,
+          "unexpected_rows": 0,
+          "wrong_candidate_detected": false,
+          "wrong_candidate_rejected": null,
+          "valid_candidate_attempts": 1,
+          "last_valid_candidate_round": 1,
+          "any_wrong_candidate_detected": false,
+          "wrong_candidate_revised": false,
+          "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+        },
+        "recheck_code_commit": "50e7ed69977ac9d974d165e928d27ca84148ee38",
+        "recheck_new_model_calls": 0,
+        "rechecked_rule_issues": [],
+        "result_sha256": "749032130185b813ce30950b13dfa54a214f6a69bc06f0985042dcc0bbdb2a54"
+      },
+      {
+        "id": "kinross-great-bear",
+        "models": {
+          "extractor": "deepseek-v4-flash",
+          "critic": "qwen3.8-max"
+        },
+        "reasoning_effort": {
+          "extractor": "low",
+          "critic": "low"
+        },
+        "output_options": {
+          "extractor": {
+            "json_schema": false,
+            "enable_thinking": null
+          },
+          "critic": {
+            "json_schema": true,
+            "enable_thinking": true
+          }
+        },
+        "parser": "pdfplumber",
+        "selected_pages": [
+          9,
+          154,
+          155,
+          156,
+          184
+        ],
+        "selection_scope": "automatic",
+        "status": "accepted",
+        "rounds": 2,
+        "accepted_rows": 32,
+        "critic_scores": [
+          null,
+          9
+        ],
+        "rule_issues": [
+          [],
+          []
+        ],
+        "errors": [
+          "provider_response_incomplete",
+          null
+        ],
+        "reasons": [],
+        "seconds": 212.3,
+        "truth_scope": [
+          9,
+          154,
+          155,
+          156,
+          184
+        ],
+        "acquisition_code_commit": "8721deaac5fc4d57e9aa131888066640bc1270f4",
+        "original_metrics_before_basis_aliases": {
+          "status": "accepted",
+          "tolerance": 0.05,
+          "field_accuracy_all": 0.8823529411764706,
+          "accepted_field_accuracy": 0.9375,
+          "coverage": 0.9375,
+          "correct_fields": 90,
+          "total_fields": 102,
+          "missing_rows": 2,
+          "unexpected_rows": 2,
+          "wrong_candidate_detected": true,
+          "wrong_candidate_rejected": false,
+          "valid_candidate_attempts": 1,
+          "last_valid_candidate_round": 2,
+          "any_wrong_candidate_detected": true,
+          "wrong_candidate_revised": false,
+          "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+        },
+        "current_metrics": {
+          "status": "accepted",
+          "tolerance": 0.05,
+          "field_accuracy_all": 1.0,
+          "accepted_field_accuracy": 1.0,
+          "coverage": 1.0,
+          "correct_fields": 96,
+          "total_fields": 96,
+          "missing_rows": 0,
+          "unexpected_rows": 0,
+          "wrong_candidate_detected": false,
+          "wrong_candidate_rejected": null,
+          "valid_candidate_attempts": 1,
+          "last_valid_candidate_round": 2,
+          "any_wrong_candidate_detected": false,
+          "wrong_candidate_revised": false,
+          "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+        },
+        "recheck_code_commit": "50e7ed69977ac9d974d165e928d27ca84148ee38",
+        "recheck_new_model_calls": 0,
+        "rechecked_rule_issues": [],
+        "result_sha256": "03876d0528ced74b9558bfb0ef718c85c54a9339281e57529a498fdbf6bb160c"
+      }
+    ],
+    "accepted_rows": 52,
+    "correct_numeric_fields": 156,
+    "total_numeric_fields": 156,
+    "numeric_tolerance": 0.05
+  },
+  "pilbara_explicit_positive_control": {
+    "code_commit": "50e7ed69977ac9d974d165e928d27ca84148ee38",
+    "allow_jorc": true,
+    "case": {
+      "id": "pilbara-jorc",
+      "models": {
+        "extractor": "deepseek-v4-flash",
+        "critic": "qwen3.8-max"
+      },
+      "reasoning_effort": {
+        "extractor": "low",
+        "critic": "low"
+      },
+      "output_options": {
+        "extractor": {
+          "json_schema": false,
+          "enable_thinking": null
+        },
+        "critic": {
+          "json_schema": true,
+          "enable_thinking": true
+        }
+      },
+      "parser": "pdfplumber",
+      "selected_pages": [
+        2
+      ],
+      "selection_scope": "explicit",
+      "status": "accepted",
+      "rounds": 1,
+      "accepted_rows": 5,
+      "critic_scores": [
+        8
+      ],
+      "rule_issues": [
+        []
+      ],
+      "errors": [
+        null
+      ],
+      "reasons": [],
+      "seconds": 79.2,
+      "metrics": {
+        "status": "accepted",
+        "tolerance": 0.05,
+        "field_accuracy_all": 1.0,
+        "accepted_field_accuracy": 1.0,
+        "coverage": 1.0,
+        "correct_fields": 15,
+        "total_fields": 15,
+        "missing_rows": 0,
+        "unexpected_rows": 0,
+        "wrong_candidate_detected": false,
+        "wrong_candidate_rejected": null,
+        "valid_candidate_attempts": 1,
+        "last_valid_candidate_round": 1,
+        "any_wrong_candidate_detected": false,
+        "wrong_candidate_revised": false,
+        "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+      },
+      "truth_scope": [
+        2
+      ]
+    },
+    "note": "New real extractor and critic calls on PDF page 2. Separate from default full-file cases."
+  },
+  "pilbara_full_file_parser_boundary": {
+    "code_commit": "50e7ed69977ac9d974d165e928d27ca84148ee38",
+    "case": {
+      "id": "pilbara-jorc",
+      "models": {
+        "extractor": "deepseek-v4-flash",
+        "critic": "qwen3.8-max"
+      },
+      "reasoning_effort": {
+        "extractor": "low",
+        "critic": "low"
+      },
+      "output_options": {
+        "extractor": {
+          "json_schema": false,
+          "enable_thinking": null
+        },
+        "critic": {
+          "json_schema": true,
+          "enable_thinking": true
+        }
+      },
+      "parser": "pdfplumber",
+      "selected_pages": [
+        2,
+        5,
+        11
+      ],
+      "selection_scope": "automatic",
+      "status": "abstain",
+      "rounds": 0,
+      "accepted_rows": 0,
+      "critic_scores": [],
+      "rule_issues": [],
+      "errors": [],
+      "reasons": [
+        "unverified_scan_pages: 11"
+      ],
+      "seconds": 19.3,
+      "metrics": null,
+      "truth_scope": "Not scored: reference covers explicit pages only"
+    },
+    "model_calls": 0,
+    "note": "Page 11 unverified, OCR not configured; correctly abstained before model calls. Not a completed extraction."
+  },
+  "real_critic_fault_injections": {
+    "acquisition_code_before_coverage_fix": "8721deaac5fc4d57e9aa131888066640bc1270f4",
+    "wrong_omission_accepted_before_fix": {
+      "status": "accepted",
+      "selected_pages": [
+        2
+      ],
+      "selection_scope": "explicit",
+      "accepted_rows": 4,
+      "rounds": 1,
+      "critic_scores": [
+        10
+      ],
+      "critic_approved": [
+        true
+      ],
+      "critic_complete": [
+        true
+      ],
+      "errors": [
+        null
+      ],
+      "rule_issues": [
+        []
+      ],
+      "artifact_sha256": "94b02144881c167308ac968137c4e9e6b9e4883bcdbd279e70593324551a7f1c",
+      "fault": "omission",
+      "mode": "fixed_fault_candidate_with_live_critic",
+      "metrics": {
+        "status": "accepted",
+        "tolerance": 0.05,
+        "field_accuracy_all": 0.8,
+        "accepted_field_accuracy": 1.0,
+        "coverage": 0.8,
+        "correct_fields": 12,
+        "total_fields": 15,
+        "missing_rows": 1,
+        "unexpected_rows": 0,
+        "wrong_candidate_detected": true,
+        "wrong_candidate_rejected": false,
+        "valid_candidate_attempts": 1,
+        "last_valid_candidate_round": 1,
+        "any_wrong_candidate_detected": true,
+        "wrong_candidate_revised": false,
+        "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+      },
+      "script_exit_code": 1,
+      "all_three_critic_responses_valid": false
+    },
+    "final_faults": [
+      {
+        "status": "abstain",
+        "selected_pages": [
+          2
+        ],
+        "selection_scope": "explicit",
+        "accepted_rows": 0,
+        "rounds": 3,
+        "critic_scores": [
+          8,
+          6,
+          8
+        ],
+        "critic_approved": [
+          true,
+          false,
+          true
+        ],
+        "critic_complete": [
+          true,
+          true,
+          true
+        ],
+        "errors": [
+          null,
+          null,
+          null
+        ],
+        "rule_issues": [
+          [
+            "row[0]:source_column_units_unverified_or_conflicting"
+          ],
+          [
+            "row[0]:source_column_units_unverified_or_conflicting"
+          ],
+          [
+            "row[0]:source_column_units_unverified_or_conflicting"
+          ]
+        ],
+        "artifact_sha256": "c23220e2ea0135da0d6b34480fcffd33740a9d215d3612a4103043967d5e617f",
+        "fault": "coupled-units",
+        "mode": "fixed_fault_candidate_with_live_critic",
+        "metrics": {
+          "status": "abstain",
+          "tolerance": 0.05,
+          "field_accuracy_all": 0.0,
+          "accepted_field_accuracy": null,
+          "coverage": 0.0,
+          "correct_fields": 0,
+          "total_fields": 15,
+          "missing_rows": 5,
+          "unexpected_rows": 0,
+          "wrong_candidate_detected": true,
+          "wrong_candidate_rejected": true,
+          "valid_candidate_attempts": 3,
+          "last_valid_candidate_round": 3,
+          "any_wrong_candidate_detected": true,
+          "wrong_candidate_revised": false,
+          "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+        },
+        "script_exit_code": 0,
+        "all_three_critic_responses_valid": true
+      },
+      {
+        "status": "abstain",
+        "selected_pages": [
+          2
+        ],
+        "selection_scope": "explicit",
+        "accepted_rows": 0,
+        "rounds": 3,
+        "critic_scores": [
+          5,
+          4,
+          4
+        ],
+        "critic_approved": [
+          false,
+          false,
+          false
+        ],
+        "critic_complete": [
+          false,
+          false,
+          false
+        ],
+        "errors": [
+          null,
+          null,
+          null
+        ],
+        "rule_issues": [
+          [
+            "row[1]:duplicate_resource_row",
+            "row[1]:row_category_conflicts_with_output"
+          ],
+          [
+            "row[1]:duplicate_resource_row",
+            "row[1]:row_category_conflicts_with_output"
+          ],
+          [
+            "row[1]:duplicate_resource_row",
+            "row[1]:row_category_conflicts_with_output"
+          ]
+        ],
+        "artifact_sha256": "338b4cfcad6cbca5e8c80406507cfe2984453b212e10e9011b59033c6265736c",
+        "fault": "category",
+        "mode": "fixed_fault_candidate_with_live_critic",
+        "metrics": {
+          "status": "abstain",
+          "tolerance": 0.05,
+          "field_accuracy_all": 0.0,
+          "accepted_field_accuracy": null,
+          "coverage": 0.0,
+          "correct_fields": 0,
+          "total_fields": 15,
+          "missing_rows": 5,
+          "unexpected_rows": 0,
+          "wrong_candidate_detected": true,
+          "wrong_candidate_rejected": true,
+          "valid_candidate_attempts": 3,
+          "last_valid_candidate_round": 3,
+          "any_wrong_candidate_detected": true,
+          "wrong_candidate_revised": false,
+          "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+        },
+        "script_exit_code": 0,
+        "all_three_critic_responses_valid": true
+      },
+      {
+        "status": "abstain",
+        "selected_pages": [
+          2
+        ],
+        "selection_scope": "explicit",
+        "accepted_rows": 0,
+        "rounds": 3,
+        "critic_scores": [
+          5,
+          7,
+          6
+        ],
+        "critic_approved": [
+          false,
+          false,
+          false
+        ],
+        "critic_complete": [
+          false,
+          false,
+          false
+        ],
+        "errors": [
+          null,
+          null,
+          null
+        ],
+        "rule_issues": [
+          [
+            "page[2]:missing_explicit_resource_row:Li2O:Indicated 349 1.29 121 0.54 4.5 93"
+          ],
+          [
+            "page[2]:missing_explicit_resource_row:Li2O:Indicated 349 1.29 121 0.54 4.5 93"
+          ],
+          [
+            "page[2]:missing_explicit_resource_row:Li2O:Indicated 349 1.29 121 0.54 4.5 93"
+          ]
+        ],
+        "artifact_sha256": "45f6b7f851a09e41caeb17f2e9220de6151df1e7ecceb0347a8ee718c841a2af",
+        "fault": "omission",
+        "mode": "fixed_fault_candidate_with_live_critic",
+        "metrics": {
+          "status": "abstain",
+          "tolerance": 0.05,
+          "field_accuracy_all": 0.0,
+          "accepted_field_accuracy": null,
+          "coverage": 0.0,
+          "correct_fields": 0,
+          "total_fields": 15,
+          "missing_rows": 5,
+          "unexpected_rows": 0,
+          "wrong_candidate_detected": true,
+          "wrong_candidate_rejected": true,
+          "valid_candidate_attempts": 3,
+          "last_valid_candidate_round": 3,
+          "any_wrong_candidate_detected": true,
+          "wrong_candidate_revised": false,
+          "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+        },
+        "script_exit_code": 0,
+        "all_three_critic_responses_valid": true
+      }
+    ],
+    "note": "Unit/category calls at 8721dea retained and source rules rechecked at 50e7ed6 without new critic calls. Omission repeated after new coverage rule. Critic approved the million-fold unit error twice and originally approved omission with score 10; do not count rule veto as model correctness.",
+    "omission_source_inventory_limit": "Partial deterministic inventory only for recognizable single-commodity single-table explicit numeric category rows. Complex column, multi-table, continuation-page and OCR layouts remain unproven."
+  },
+  "frozen_original_log_paired_replay": {
+    "models": {
+      "extractor": "deepseek-v4-flash",
+      "critic": "qwen3.8-max"
+    },
+    "code_commit": "50e7ed69977ac9d974d165e928d27ca84148ee38",
+    "log_sha256_before": "54d4e133437e070815ad2f089bf8b37706d3900c51a7f2a6317184c9efaf209e",
+    "log_sha256_after": "54d4e133437e070815ad2f089bf8b37706d3900c51a7f2a6317184c9efaf209e",
+    "cases": [
+      {
+        "id": "barrick-reko-diq",
+        "selected_pages": [
+          19
+        ],
+        "few_shot_count": 0,
+        "seconds": 604.8,
+        "baseline": {
+          "status": "accepted",
+          "rounds": 3,
+          "critic_scores": [
+            null,
+            7,
+            8
+          ],
+          "errors": [
+            "provider_response_incomplete",
+            null,
+            null
+          ],
+          "rule_issues": [
+            [],
+            [],
+            []
+          ],
+          "metrics": {
+            "status": "accepted",
+            "tolerance": 0.05,
+            "field_accuracy_all": 1.0,
+            "accepted_field_accuracy": 1.0,
+            "coverage": 1.0,
+            "correct_fields": 30,
+            "total_fields": 30,
+            "missing_rows": 0,
+            "unexpected_rows": 0,
+            "wrong_candidate_detected": false,
+            "wrong_candidate_rejected": null,
+            "valid_candidate_attempts": 2,
+            "last_valid_candidate_round": 3,
+            "any_wrong_candidate_detected": false,
+            "wrong_candidate_revised": false,
+            "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+          }
+        },
+        "with_few_shots": {
+          "status": "abstain",
+          "rounds": 3,
+          "critic_scores": [
+            8,
+            7,
+            null
+          ],
+          "errors": [
+            null,
+            null,
+            "provider_invalid_json_or_schema"
+          ],
+          "rule_issues": [
+            [
+              "row[6]:header_quote_not_in_source",
+              "row[6]:unsupported_quote_or_page",
+              "row[7]:header_quote_not_in_source",
+              "row[7]:unsupported_quote_or_page",
+              "row[8]:header_quote_not_in_source",
+              "row[8]:unsupported_quote_or_page",
+              "row[9]:header_quote_not_in_source",
+              "row[9]:unsupported_quote_or_page"
+            ],
+            [
+              "row[6]:header_quote_not_in_source",
+              "row[6]:unsupported_quote_or_page",
+              "row[7]:header_quote_not_in_source",
+              "row[7]:unsupported_quote_or_page",
+              "row[8]:header_quote_not_in_source",
+              "row[8]:unsupported_quote_or_page",
+              "row[9]:header_quote_not_in_source",
+              "row[9]:unsupported_quote_or_page"
+            ],
+            []
+          ],
+          "metrics": {
+            "status": "abstain",
+            "tolerance": 0.05,
+            "field_accuracy_all": 0.0,
+            "accepted_field_accuracy": null,
+            "coverage": 0.0,
+            "correct_fields": 0,
+            "total_fields": 30,
+            "missing_rows": 10,
+            "unexpected_rows": 0,
+            "wrong_candidate_detected": false,
+            "wrong_candidate_rejected": null,
+            "valid_candidate_attempts": 2,
+            "last_valid_candidate_round": 2,
+            "any_wrong_candidate_detected": false,
+            "wrong_candidate_revised": false,
+            "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+          }
+        }
+      },
+      {
+        "id": "kinross-great-bear",
+        "selected_pages": [
+          9
+        ],
+        "few_shot_count": 1,
+        "seconds": 105.1,
+        "baseline": {
+          "status": "accepted",
+          "rounds": 1,
+          "critic_scores": [
+            9
+          ],
+          "errors": [
+            null
+          ],
+          "rule_issues": [
+            []
+          ],
+          "metrics": {
+            "status": "accepted",
+            "tolerance": 0.05,
+            "field_accuracy_all": 1.0,
+            "accepted_field_accuracy": 1.0,
+            "coverage": 1.0,
+            "correct_fields": 6,
+            "total_fields": 6,
+            "missing_rows": 0,
+            "unexpected_rows": 0,
+            "wrong_candidate_detected": false,
+            "wrong_candidate_rejected": null,
+            "valid_candidate_attempts": 1,
+            "last_valid_candidate_round": 1,
+            "any_wrong_candidate_detected": false,
+            "wrong_candidate_revised": false,
+            "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+          }
+        },
+        "with_few_shots": {
+          "status": "accepted",
+          "rounds": 1,
+          "critic_scores": [
+            9
+          ],
+          "errors": [
+            null
+          ],
+          "rule_issues": [
+            []
+          ],
+          "metrics": {
+            "status": "accepted",
+            "tolerance": 0.05,
+            "field_accuracy_all": 1.0,
+            "accepted_field_accuracy": 1.0,
+            "coverage": 1.0,
+            "correct_fields": 6,
+            "total_fields": 6,
+            "missing_rows": 0,
+            "unexpected_rows": 0,
+            "wrong_candidate_detected": false,
+            "wrong_candidate_rejected": null,
+            "valid_candidate_attempts": 1,
+            "last_valid_candidate_round": 1,
+            "any_wrong_candidate_detected": false,
+            "wrong_candidate_revised": false,
+            "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+          }
+        }
+      }
+    ],
+    "missing_document_ids": [],
+    "skipped_by_limit": 0,
+    "note": "Frozen original failure log, original explicit scope, read-only paired replay; no full-document few-shot accuracy claim."
+  },
+  "limitations": {
+    "unseen_assessor_validation_complete": false,
+    "all_document_locator_recall_proven": false,
+    "stable_few_shot_benefit_demonstrated": false,
+    "critic_independently_reliable": false,
+    "actual_chinese_ocr_accuracy_measured": false
+  }
+}
