@@ -4,7 +4,7 @@ from difflib import SequenceMatcher
 
 from .models import Candidate, ResourceRow
 from .pdf import NI_STANDARD_PATTERN, Document, normalized
-from .units import mass_units, table_unit_check, text_unit_check
+from .units import is_number, mass_units, table_unit_check, text_unit_check
 
 ORE_FACTORS = {"Mt": 1.0, "kt": 0.001, "t": 0.000001}
 METAL_FACTORS = {
@@ -34,9 +34,17 @@ def interval(raw: str, factor: float = 1.0) -> tuple[float, float]:
     return max(0, value - half) * factor, (value + half) * factor
 
 
+def identity_text(field, value):
+    text = normalized(str(value)).casefold()
+    if field == "basis":
+        text = re.sub(r"\bunderground\b", "ug", text)
+        text = re.sub(r"\bopen\s+pit\b", "op", text)
+    return text
+
+
 def row_key(row) -> tuple:
     return tuple(
-        normalized(str(getattr(row, f))).casefold()
+        identity_text(f, getattr(row, f))
         for f in ("project", "table", "effective_date", "basis", "cutoff", "category", "commodity")
     )
 
@@ -60,6 +68,69 @@ def vertical_category_supported(row, page_text):
         return False
     # A new table or unit header closes the block; never borrow an earlier multiplier.
     return not (mass_units(between) or re.search(r"\bTable\s+\d|g\s*/\s*t|%", between, re.I))
+
+
+def explicit_row_coverage(candidate, document):
+    """Veto omissions in clearly labelled single-commodity tables, without ground truth.
+
+    This is a partial source inventory, not a proof of completeness for arbitrary layouts.
+    """
+    errors = []
+    used = set()
+    value = r"(?:\d[\d,]*(?:\.\d+)?|[-–—])"
+    pattern = (
+        rf"(?:[A-Za-z][A-Za-z ()/–—-]*\s+)?(Indicated|Inferred)\s+({value}(?:\s+{value}){{2,}})"
+    )
+    for page in document.selected_pages:
+        tables = document.tables.get(page, [])
+        if len(tables) != 1:
+            continue
+        cells = [[normalized(str(cell or "")) for cell in line] for line in tables[0]]
+        first = next(
+            (i for i, line in enumerate(cells) if sum(is_number(c) for c in line) >= 3), len(cells)
+        )
+        header = " ".join(cell for line in cells[:first] for cell in line)
+        commodities = set()
+        for commodity, label in (
+            ("Au", r"\bAu\b|\bGold\b"),
+            ("Cu", r"\bCu\b|\bCopper\b"),
+            ("Li2O", r"\bLi2O\b"),
+        ):
+            if re.search(label, header, re.I):
+                commodities.add(commodity)
+        if (
+            len(commodities) != 1
+            or not re.search(r"tonn", header, re.I)
+            or not re.search(r"g\s*/\s*t|%", header, re.I)
+        ):
+            continue
+        commodity = next(iter(commodities))
+        for line in document.pages.get(page, "").splitlines():
+            text = normalized(line)
+            match = re.fullmatch(pattern, text, re.I)
+            labels = set(re.findall(r"\b(Measured|Indicated|Inferred)\b", text, re.I))
+            if not match or len(labels) != 1 or sum(is_number(v) for v in match[2].split()) < 3:
+                continue
+            source_quote = normalized(match[1] + " " + match[2])
+            found = None
+            for i, row in enumerate(candidate.rows):
+                quote = normalized(row.evidence.row_quote)
+                if (
+                    i not in used
+                    and row.evidence.page == page
+                    and row.commodity == commodity
+                    and row.category.casefold() == match[1].casefold()
+                    and (source_quote in quote or quote in source_quote)
+                ):
+                    found = i
+                    break
+            if found is None:
+                errors.append(
+                    f"page[{page}]:missing_explicit_resource_row:{commodity}:{source_quote}"
+                )
+            else:
+                used.add(found)
+    return errors
 
 
 def check_row(row: ResourceRow, document: Document) -> list[str]:
@@ -215,4 +286,5 @@ def validate_candidate(candidate: Candidate, document: Document, allow_jorc: boo
             errors.append(f"row[{i}]:duplicate_resource_row")
         keys.add(key)
         errors.extend(f"row[{i}]:{issue}" for issue in check_row(row, document))
+    errors.extend(explicit_row_coverage(candidate, document))
     return errors

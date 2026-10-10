@@ -15,3 +15,7 @@ evolution.jsonl
 *.egg-info/
 dist/
 build/
+# Persistent local credentials never belong in source or delivery archives.
+github-token.txt
+**/github-token.txt
+.secrets/

@@ -1,8 +1,7 @@
 import json
 
-from .checks import row_key
+from .checks import identity_text, row_key
 from .models import AuditResult, GroundTruth
-from .pdf import normalized
 
 FIELDS = ("ore_mt", "grade", "contained_metal")
 
@@ -66,15 +65,13 @@ def evaluate(result: AuditResult, truth: GroundTruth, tolerance: float = 0.05) -
         matches = []
         for key, target in expected.items():
             if any(
-                normalized(str(getattr(row, f))).casefold()
-                != normalized(str(getattr(target, f))).casefold()
+                identity_text(f, getattr(row, f)) != identity_text(f, getattr(target, f))
                 for f in ("category", "commodity")
             ):
                 continue
             if any(
                 getattr(target, f)
-                and normalized(str(getattr(row, f))).casefold()
-                != normalized(str(getattr(target, f))).casefold()
+                and identity_text(f, getattr(row, f)) != identity_text(f, getattr(target, f))
                 for f in ("project", "table", "effective_date", "basis", "cutoff")
             ):
                 continue

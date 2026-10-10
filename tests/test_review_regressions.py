@@ -12,7 +12,7 @@ from dataclasses import replace
 import pytest
 
 from resource_auditor import pdf as pdf_module
-from resource_auditor.checks import validate_candidate
+from resource_auditor.checks import check_row, validate_candidate
 from resource_auditor.config import RoleConfig, Settings
 from resource_auditor.engine import audit
 from resource_auditor.evaluation import evaluate, load_truth
@@ -334,7 +334,12 @@ def test_vertical_merged_category_cannot_be_borrowed_from_previous_group(
     assert audit(document, settings, BlindHighScore([candidate])).status == "abstain"
     row.category = "Inferred"
     row.evidence.category_quote = "Inferred"
-    assert validate_candidate(candidate, document, False) == []
+    assert check_row(row, document) == []
+    # This fixture validates one merged row; it still omits the other source rows.
+    assert any(
+        "missing_explicit_resource_row" in issue
+        for issue in validate_candidate(candidate, document, False)
+    )
 
 
 def test_disclosure_note_cannot_override_conflicting_column_multiplier(
@@ -426,3 +431,66 @@ def test_borderless_repeated_numeric_row_is_ambiguous(candidate, document):
     assert "row[0]:category_column_alignment_unverified" in validate_candidate(
         candidate, document, False
     )
+
+
+def test_missing_explicit_resource_row_vetoes_blind_approval(settings, candidate, document):
+    document.tables = {1: [[["Category", "Tonnes (Mt)", "Cu (%)", "Contained Cu (Mt)"]]]}
+    document.pages[1] = document.context + "\nInferred 20 1.00 0.2"
+    result = audit(document, settings, BlindHighScore([candidate]))
+    assert result.status == "abstain" and result.rows == []
+    assert any("missing_explicit_resource_row" in issue for issue in result.attempts[0].rule_issues)
+    inferred = deepcopy(candidate.rows[0])
+    inferred.category = "Inferred"
+    inferred.ore_mt, inferred.contained_metal = 20, 200000
+    inferred.evidence.row_quote = "Inferred 20 1.00 0.2"
+    inferred.evidence.ore_raw, inferred.evidence.contained_raw = "20", "0.2"
+    candidate.rows.append(inferred)
+    assert audit(document, settings, BlindHighScore([candidate])).status == "accepted"
+
+
+def test_explicit_coverage_counts_repeated_source_rows_separately(settings, candidate, document):
+    document.tables = {1: [[["Category", "Tonnes (Mt)", "Cu (%)", "Contained Cu (Mt)"]]]}
+    document.pages[1] = document.context + "\nIndicated 100 1.00 1.0"
+    assert audit(document, settings, BlindHighScore([candidate])).status == "abstain"
+    additional = deepcopy(candidate.rows[0])
+    additional.basis = "stockpiles"
+    candidate.rows.append(additional)
+    assert audit(document, settings, BlindHighScore([candidate])).status == "accepted"
+
+
+def test_explicit_coverage_does_not_turn_prose_or_excluded_categories_into_rows(
+    settings, candidate, document
+):
+    document.tables = {1: [[["Category", "Tonnes (Mt)", "Cu (%)", "Contained Cu (Mt)"]]]}
+    document.pages[1] = document.context + (
+        "\nIndicated Resources were estimated on 2025 01 01."
+        "\nMeasured 30 1.00 0.3\nMeasured and Indicated 130 1.00 1.3"
+        "\nInferred - - -\nSub-Total 130 1.00 1.3"
+    )
+    assert audit(document, settings, BlindHighScore([candidate])).status == "accepted"
+
+
+def test_basis_method_abbreviations_match_without_merging_locations(settings, candidate, document):
+    expected = candidate.rows[0].model_dump(exclude={"evidence"})
+    expected["basis"] = "Zone A UG"
+    truth = GroundTruth(rows=[expected])
+    candidate.rows[0].basis = "Zone A underground"
+    result = audit(document, settings, BlindHighScore([candidate]))
+    assert evaluate(result, truth)["field_accuracy_all"] == 1
+    candidate.rows[0].basis = "Zone B underground"
+    assert evaluate(audit(document, settings, BlindHighScore([candidate])), truth)["coverage"] == 0
+    candidate.rows[0].basis = "Zone A open pit"
+    assert evaluate(audit(document, settings, BlindHighScore([candidate])), truth)["coverage"] == 0
+
+
+@pytest.mark.parametrize("short,long", [("UG", "underground"), ("OP", "open pit")])
+def test_equivalent_basis_spellings_cannot_create_distinct_resource_rows(
+    settings, candidate, document, short, long
+):
+    candidate.rows[0].basis = "Zone A " + short
+    duplicate = deepcopy(candidate.rows[0])
+    duplicate.basis = "Zone A " + long
+    candidate.rows.append(duplicate)
+    result = audit(document, settings, BlindHighScore([candidate]))
+    assert result.status == "abstain"
+    assert "row[1]:duplicate_resource_row" in result.attempts[0].rule_issues
