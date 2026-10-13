@@ -12,6 +12,9 @@ from resource_auditor.llm import ModelError
 from resource_auditor.models import Candidate, Critique, GroundTruth, ResourceRow
 from resource_auditor.pdf import Document
 
+# Valid controls must provide source provenance for their identity fields.
+SOURCE_IDENTITY = "Synthetic Table 1. Effective January 1, 2025. Cut-off 0.5 g/t Au.\n"
+
 
 @pytest.fixture
 def settings(tmp_path):
@@ -24,7 +27,10 @@ def settings(tmp_path):
 
 @pytest.fixture
 def document():
-    text = "NI 43-101 Mineral Resources\nTonnes (Mt) Au (g/t) Gold (koz)\nIndicated 10 1.00 321.5"
+    text = (
+        SOURCE_IDENTITY
+        + "NI 43-101 Mineral Resources\nTonnes (Mt) Au (g/t) Gold (koz)\nIndicated 10 1.00 321.5"
+    )
     return Document("synthetic-sha", "synthetic.pdf", {1: text}, text, [1], True, [])
 
 
@@ -91,7 +97,7 @@ def test_reporting_standard_accepts_full_national_instrument_title(candidate, do
 
 def test_header_omission_has_specific_error_and_literal_source_hint(candidate, document):
     row = candidate.rows[0]
-    document.pages[1] = (
+    document.pages[1] = SOURCE_IDENTITY + (
         "NI 43-101 Resources\nTonnes Grade Gold Classification (Mt) (g/t) (koz)\nIndicated 10 1.00 321.5"
     )
     row.evidence.header_quote = "Tonnes Grade Gold (Mt) (g/t) (koz)"
@@ -261,7 +267,8 @@ def test_five_percent_boundary_is_inclusive(settings, candidate, document):
 
 def test_category_column_quote_and_rounded_stockpile(candidate, document):
     row = candidate.rows[0]
-    document.pages[1] = (
+    row.basis = "Example"
+    document.pages[1] = SOURCE_IDENTITY + (
         "NI 43-101 Mineral Resources\nIndicated\nTonnes (Mt) Au (g/t) Gold (koz)\nExample 10 1.00 321.5"
     )
     row.evidence.row_quote = "Example 10 1.00 321.5"
@@ -276,7 +283,10 @@ def test_category_column_quote_and_rounded_stockpile(candidate, document):
     row.evidence.category_quote = ""
     row.evidence.row_quote = "Indicated 7 0.93 0.1"
     row.evidence.header_quote = "Tonnes (Mt) Li2O (%) Li2O (Mt)"
-    document.pages[1] = row.evidence.header_quote + "\n" + row.evidence.row_quote
+    row.basis = "total"
+    document.pages[1] = SOURCE_IDENTITY + (
+        row.evidence.header_quote + "\n" + row.evidence.row_quote
+    )
     assert check_row(row, document) == []
 
 

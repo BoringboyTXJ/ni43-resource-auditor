@@ -163,6 +163,8 @@ uv run --frozen resource-auditor evaluate artifacts/kinross.json examples/kinros
 
 Pilbara 是 JORC，应明确传 `--allow-jorc --pages 2`。开发标注只覆盖指定表格；不能将整份 PDF 的输出对有限表格的 truth 评分后宣称全报告准确率。
 
+**评分前必须核对 `selected_pages`、表号、basis 和 cutoff 与独立 truth 的范围一致。** 敏感性表、分矿区和不同表号均为独立身份；truth 只覆盖其中一部分时，应调整抽取范围或补齐标注。额外行仍扣分，弃答仍须同时看覆盖率和错误候选拒绝指标。
+
 ## 5. Evolution log 与复跑
 
 失败自动追加到 `data/evolution.jsonl`；解析器回退记录为 `degradation`；从失败修订为通过时追加 `resolution`。新的文档可用其他文档的成功修订作示例，当前 PDF 的 SHA-256 排除，不读取 truth。
@@ -172,6 +174,8 @@ uv run --frozen resource-auditor replay --pdf-dir data/public --log data/evoluti
 ```
 
 每个失败文档分别运行 baseline（无 few-shot）和 augmented（跨文档 few-shot）；复跑不改日志。输出包含 `few_shot_count`，零个示例时不能声称“few-shot 改进”。新日志保存原来选择的页码和 JORC 开关，复跑会沿用；旧日志缺失范围时可使用 `--pages`，否则自动选择。旧日志的 JORC 样本需传 `--allow-jorc`。
+
+首次运行日志为空。如果全部首轮通过，或没有其他文档失败后修订成功的 resolution，便没有可用的跨文档示例；这时成对复跑只是重复调用，不能证明 few-shot 收益。
 
 从复跑文件中取 `baseline` 和 `with_few_shots` 分别保存为结果 JSON，再用同一份独立 truth 执行 `evaluate`，比较字段准确率、覆盖率和错误候选拒绝情况。提供方输出有随机性；一次差异不能证明稳定改进。
 
@@ -213,3 +217,5 @@ docker compose config --quiet
 ```
 
 CI 重跑 lint、format、测试和 Docker 构建，并以非 root 用户在断网容器内实际解析一页无文本层的中文扫描资源表，检查中文文字、类别、数值、表格结构和原页码；随后检查 API 启动及持久卷写入。此 OCR 检查不调用抽取/审核模型。单元测试以受控假模型验证失败和弃答路径；真实模型指标另行记录，不混称为真实双模型测试。对于新的、未知的报告，应重新进行独立 truth 评测。
+
+独立审查的 P0 回归可单独运行 `uv run --frozen pytest tests/test_p0_safety.py -q`。包含公开资源表的原生多表、无边框、跨页和敏感性布局片段，逐行删除及身份篡改检查；受控 Critic 持续给 10 分也不能放行错误。无需下载 PDF 或配置模型 key。

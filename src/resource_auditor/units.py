@@ -93,42 +93,47 @@ def text_unit_check(row, page_text):
     return [] if expected in pairs else ["source_column_units_unverified_or_conflicting"]
 
 
+def table_columns(table):
+    """Shared native column map for unit binding and source completeness checks."""
+    cells = [[normalized(str(cell or "")) for cell in line] for line in table]
+    first = next((i for i, line in enumerate(cells) if sum(is_number(c) for c in line) >= 3), None)
+    if first is None:
+        return None
+    headers, body = cells[:first], cells[first:]
+    width = max(map(len, cells))
+    labels = [" ".join(line[col] for line in headers if col < len(line)) for col in range(width)]
+    categories = [None] * width
+    for line in headers:
+        current = None
+        for col, cell in enumerate(line):
+            if re.fullmatch(r"Measured\s*(?:and|&|\+)\s*Indicated", cell, re.I):
+                current = "combined"
+            elif re.fullmatch(r"Measured|Indicated|Inferred", cell, re.I):
+                current = cell.casefold()
+            if current:
+                categories[col] = current
+    roles, current = [], None
+    for label in labels:
+        if re.search(r"contained|ounces?", label, re.I):
+            current = "metal"
+        elif re.search(r"tonn|\bore\b", label, re.I):
+            current = "ore"
+        elif re.search(r"\bgrade\b|%|(?<![a-z])g\s*/\s*t", label, re.I):
+            current = "grade"
+        elif re.search(r"\b(?:Gold|Copper)\b", label, re.I):
+            current = "metal"
+        roles.append(current)
+    return body, labels, categories, roles
+
+
 def table_unit_check(row, tables, page_text):
     """Use extractor-independent cells when a full resource table is available."""
     usable = False
     for table in tables:
-        cells = [[normalized(str(cell or "")) for cell in line] for line in table]
-        first = next(
-            (i for i, line in enumerate(cells) if sum(is_number(c) for c in line) >= 3), None
-        )
-        if first is None:
+        parsed = table_columns(table)
+        if parsed is None:
             continue
-        headers, body = cells[:first], cells[first:]
-        width = max(map(len, cells))
-        labels = [
-            " ".join(line[col] for line in headers if col < len(line)) for col in range(width)
-        ]
-        categories = [None] * width
-        for line in headers:
-            current = None
-            for col, cell in enumerate(line):
-                if re.fullmatch(r"Measured\s*(?:and|&|\+)\s*Indicated", cell, re.I):
-                    current = "combined"
-                elif re.fullmatch(r"Measured|Indicated|Inferred", cell, re.I):
-                    current = cell.casefold()
-                if current:
-                    categories[col] = current
-        roles, current = [], None
-        for label in labels:
-            if re.search(r"contained|ounces?", label, re.I):
-                current = "metal"
-            elif re.search(r"tonn|\bore\b", label, re.I):
-                current = "ore"
-            elif re.search(r"\bgrade\b|%|(?<![a-z])g\s*/\s*t", label, re.I):
-                current = "grade"
-            elif re.search(r"\b(?:Gold|Copper)\b", label, re.I):
-                current = "metal"
-            roles.append(current)
+        body, labels, categories, roles = parsed
         if not {"ore", "grade", "metal"}.issubset(roles):
             continue
         usable = True

@@ -1,0 +1,290 @@
+{
+  "date": "2026-10-14",
+  "reviewed_base_commit": "9d207774cbe63415d8e28b4be8de20fc083b925d",
+  "fixes": [
+    "source_inventory_independent_of_native_table_count",
+    "unverified_scope_blocks_acceptance",
+    "weak_identity_source_provenance",
+    "retain_qualified_total_mining_method"
+  ],
+  "automated_tests": {
+    "total": 125,
+    "original_retained": 101,
+    "new_p0_tests": 24
+  },
+  "offline_controls": [
+    {
+      "id": "barrick-reko-diq",
+      "document_id": "8fb8624bffad15101f86a5a21eafd3a2d5e36a66a915c178715993cf564189ce",
+      "selected_pages": [
+        19
+      ],
+      "native_table_counts": {
+        "19": 2
+      },
+      "rows": 10,
+      "normal_status": "accepted",
+      "single_row_omissions_detected": 10,
+      "fabricated_identity_fields_rejected": [
+        "project",
+        "table",
+        "effective_date",
+        "cutoff",
+        "basis"
+      ]
+    },
+    {
+      "id": "barrick-reko-diq-automatic",
+      "document_id": "8fb8624bffad15101f86a5a21eafd3a2d5e36a66a915c178715993cf564189ce",
+      "selected_pages": [
+        19,
+        184
+      ],
+      "native_table_counts": {
+        "19": 2,
+        "184": 2
+      },
+      "rows": 20,
+      "normal_status": "accepted",
+      "single_row_omissions_detected": 20,
+      "fabricated_identity_fields_rejected": [
+        "project",
+        "table",
+        "effective_date",
+        "cutoff",
+        "basis"
+      ]
+    },
+    {
+      "id": "kinross-great-bear",
+      "document_id": "882046c5fb12d50c3624f4806c08be88db5902213d59658b55dab9360cc4e84f",
+      "selected_pages": [
+        9
+      ],
+      "native_table_counts": {
+        "9": 0
+      },
+      "rows": 2,
+      "normal_status": "accepted",
+      "single_row_omissions_detected": 2,
+      "fabricated_identity_fields_rejected": [
+        "project",
+        "table",
+        "effective_date",
+        "cutoff",
+        "basis"
+      ]
+    },
+    {
+      "id": "kinross-great-bear-automatic",
+      "document_id": "882046c5fb12d50c3624f4806c08be88db5902213d59658b55dab9360cc4e84f",
+      "selected_pages": [
+        9,
+        154,
+        155,
+        156,
+        184
+      ],
+      "native_table_counts": {
+        "9": 0,
+        "154": 0,
+        "155": 0,
+        "156": 0,
+        "184": 0
+      },
+      "rows": 32,
+      "normal_status": "accepted",
+      "single_row_omissions_detected": 32,
+      "fabricated_identity_fields_rejected": [
+        "project",
+        "table",
+        "effective_date",
+        "cutoff",
+        "basis"
+      ]
+    },
+    {
+      "id": "pilbara-jorc",
+      "document_id": "86e630e479590662e522617f975671ac2f84bfb890d93d61abae4832d8e91e89",
+      "selected_pages": [
+        2
+      ],
+      "native_table_counts": {
+        "2": 1
+      },
+      "rows": 5,
+      "normal_status": "accepted",
+      "single_row_omissions_detected": 5,
+      "fabricated_identity_fields_rejected": [
+        "project",
+        "table",
+        "effective_date",
+        "cutoff",
+        "basis"
+      ]
+    }
+  ],
+  "offline_fault_model": "Controlled Critic always approves with 10; not a live Qwen quality claim",
+  "offline_fault_counts": {
+    "single_row_deletions": 69,
+    "identity_mutations": 25
+  },
+  "live_two_model_runs": [
+    {
+      "id": "barrick-reko-diq",
+      "kind": "positive_default_upload",
+      "models": {
+        "extractor": "deepseek-v4-flash",
+        "critic": "qwen3.8-max"
+      },
+      "selected_pages": [
+        19,
+        184
+      ],
+      "status_at_run_time": "accepted",
+      "rounds": 1,
+      "rows": 20,
+      "critic_scores": [
+        9
+      ],
+      "rule_issues_at_run_time": [
+        []
+      ],
+      "errors": [
+        null
+      ],
+      "metrics_at_run_time": {
+        "status": "accepted",
+        "tolerance": 0.05,
+        "field_accuracy_all": 1.0,
+        "accepted_field_accuracy": 1.0,
+        "coverage": 1.0,
+        "correct_fields": 60,
+        "total_fields": 60,
+        "missing_rows": 0,
+        "unexpected_rows": 0,
+        "wrong_candidate_detected": false,
+        "wrong_candidate_rejected": null,
+        "valid_candidate_attempts": 1,
+        "last_valid_candidate_round": 1,
+        "any_wrong_candidate_detected": false,
+        "wrong_candidate_revised": false,
+        "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+      },
+      "final_rules_recheck": [],
+      "scope": "Whole original PDF input, automatic selected pages, no few-shot; independently scored afterward"
+    },
+    {
+      "id": "kinross-great-bear",
+      "kind": "intermediate_basis_qualifier_failure_retained",
+      "models": {
+        "extractor": "deepseek-v4-flash",
+        "critic": "qwen3.8-max"
+      },
+      "selected_pages": [
+        9,
+        154,
+        155,
+        156,
+        184
+      ],
+      "status_at_run_time": "accepted",
+      "rounds": 3,
+      "rows": 32,
+      "critic_scores": [
+        9,
+        9,
+        9
+      ],
+      "rule_issues_at_run_time": [
+        [
+          "row[31]:unverified_identity:basis"
+        ],
+        [
+          "row[31]:unsupported_category"
+        ],
+        []
+      ],
+      "errors": [
+        null,
+        null,
+        null
+      ],
+      "metrics_at_run_time": {
+        "status": "accepted",
+        "tolerance": 0.05,
+        "field_accuracy_all": 0.9393939393939394,
+        "accepted_field_accuracy": 0.96875,
+        "coverage": 0.96875,
+        "correct_fields": 93,
+        "total_fields": 99,
+        "missing_rows": 1,
+        "unexpected_rows": 1,
+        "wrong_candidate_detected": true,
+        "wrong_candidate_rejected": false,
+        "valid_candidate_attempts": 3,
+        "last_valid_candidate_round": 3,
+        "any_wrong_candidate_detected": true,
+        "wrong_candidate_revised": false,
+        "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+      },
+      "final_rules_recheck": [
+        "row[31]:unverified_identity:basis"
+      ],
+      "scope": "Whole original PDF input, automatic selected pages, no few-shot; independently scored afterward"
+    },
+    {
+      "id": "kinross-great-bear",
+      "kind": "positive_default_upload_after_qualifier_fix",
+      "models": {
+        "extractor": "deepseek-v4-flash",
+        "critic": "qwen3.8-max"
+      },
+      "selected_pages": [
+        9,
+        154,
+        155,
+        156,
+        184
+      ],
+      "status_at_run_time": "accepted",
+      "rounds": 1,
+      "rows": 32,
+      "critic_scores": [
+        9
+      ],
+      "rule_issues_at_run_time": [
+        []
+      ],
+      "errors": [
+        null
+      ],
+      "metrics_at_run_time": {
+        "status": "accepted",
+        "tolerance": 0.05,
+        "field_accuracy_all": 1.0,
+        "accepted_field_accuracy": 1.0,
+        "coverage": 1.0,
+        "correct_fields": 96,
+        "total_fields": 96,
+        "missing_rows": 0,
+        "unexpected_rows": 0,
+        "wrong_candidate_detected": false,
+        "wrong_candidate_rejected": null,
+        "valid_candidate_attempts": 1,
+        "last_valid_candidate_round": 1,
+        "any_wrong_candidate_detected": false,
+        "wrong_candidate_revised": false,
+        "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+      },
+      "final_rules_recheck": [],
+      "scope": "Whole original PDF input, automatic selected pages, no few-shot; independently scored afterward"
+    }
+  ],
+  "limits": [
+    "Source provenance is weak support, not proof of every row-to-identity association",
+    "Selected-page inventory does not prove full-report page recall",
+    "Public development references are not the assessor hidden ground truth",
+    "No new live OCR accuracy or few-shot gain claim"
+  ]
+}

@@ -1,10 +1,20 @@
+import calendar
 import math
 import re
+from collections import Counter
+from datetime import date
 from difflib import SequenceMatcher
 
 from .models import Candidate, ResourceRow
-from .pdf import NI_STANDARD_PATTERN, Document, normalized
-from .units import is_number, mass_units, table_unit_check, text_unit_check
+from .pdf import NI_STANDARD_PATTERN, Document, normalized, tabular_numbers
+from .units import (
+    is_number,
+    mass_units,
+    same_number,
+    table_columns,
+    table_unit_check,
+    text_unit_check,
+)
 
 ORE_FACTORS = {"Mt": 1.0, "kt": 0.001, "t": 0.000001}
 METAL_FACTORS = {
@@ -70,71 +80,360 @@ def vertical_category_supported(row, page_text):
     return not (mass_units(between) or re.search(r"\bTable\s+\d|g\s*/\s*t|%", between, re.I))
 
 
-def explicit_row_coverage(candidate, document):
-    """Veto omissions in clearly labelled single-commodity tables, without ground truth.
-
-    This is a partial source inventory, not a proof of completeness for arbitrary layouts.
-    """
-    errors = []
-    used = set()
-    value = r"(?:\d[\d,]*(?:\.\d+)?|[-–—])"
-    pattern = (
-        rf"(?:[A-Za-z][A-Za-z ()/–—-]*\s+)?(Indicated|Inferred)\s+({value}(?:\s+{value}){{2,}})"
-    )
-    for page in document.selected_pages:
-        tables = document.tables.get(page, [])
-        if len(tables) != 1:
-            continue
-        cells = [[normalized(str(cell or "")) for cell in line] for line in tables[0]]
-        first = next(
-            (i for i, line in enumerate(cells) if sum(is_number(c) for c in line) >= 3), len(cells)
-        )
-        header = " ".join(cell for line in cells[:first] for cell in line)
-        commodities = set()
-        for commodity, label in (
+def commodity_labels(text):
+    return {
+        commodity
+        for commodity, pattern in (
             ("Au", r"\bAu\b|\bGold\b"),
             ("Cu", r"\bCu\b|\bCopper\b"),
             ("Li2O", r"\bLi2O\b"),
+        )
+        if re.search(pattern, text, re.I)
+    }
+
+
+def native_inventory(table):
+    """Each eligible column group is one source item; never depend on table count."""
+    parsed = table_columns(table)
+    if parsed is None:
+        return [], False
+    body, labels, categories, roles = parsed
+    commodities = commodity_labels(" ".join(labels))
+    if len(commodities) != 1 or not {"ore", "grade", "metal"}.issubset(roles):
+        return [], True
+    commodity = next(iter(commodities))
+    parallel = len(set(categories) - {None}) > 1
+    current_category = None
+    inventory, uncertain = [], False
+    for source_row in body:
+        label = " ".join(
+            cell for cell in source_row if not is_number(cell) and cell not in {"", "-", "–", "—"}
+        )
+        if not parallel:
+            found = {
+                c.casefold() for c in re.findall(r"\b(Measured|Indicated|Inferred)\b", label, re.I)
+            }
+            if found:
+                current_category = next(iter(found)) if len(found) == 1 else "combined"
+            elif re.search(r"\b(?:sub[- ]?total|total)\b", label, re.I):
+                current_category = None
+            targets = [current_category] if current_category in {"indicated", "inferred"} else []
+        else:
+            targets = sorted(set(categories) & {"indicated", "inferred"})
+        for category in targets:
+            values = {}
+            for role in ("ore", "grade", "metal"):
+                cells = [
+                    source_row[i]
+                    for i, kind in enumerate(roles)
+                    if i < len(source_row)
+                    and kind == role
+                    and (not parallel or categories[i] == category)
+                    and source_row[i]
+                ]
+                numeric = [cell for cell in cells if is_number(cell)]
+                if len(numeric) == 1:
+                    values[role] = numeric[0]
+                elif numeric or any(cell not in {"-", "–", "—"} for cell in cells):
+                    uncertain = True
+            if len(values) == 3:
+                basis = (
+                    " ".join(
+                        source_row[i]
+                        for i, role in enumerate(roles)
+                        if role is None and i < len(source_row)
+                    )
+                    if parallel
+                    else ""
+                )
+                inventory.append(
+                    {"commodity": commodity, "category": category, "raw": values, "basis": basis}
+                )
+            elif values:
+                uncertain = True
+    return inventory, uncertain
+
+
+def text_inventory(text, native_rows=()):
+    """Literal rows and unambiguous vertical category blocks, including MinerU Markdown."""
+    inventory, uncertain = [], bool(re.search(r"<(?:table|tr|td)\b", text, re.I))
+    lines = [normalized(line.replace("|", " ")) for line in text.splitlines()]
+    value = r"(?:\d[\d,]*(?:\.\d+)?|[-–—])"
+    explicit = (
+        rf"(?:[A-Za-z][A-Za-z ()/–—-]*\s+)?(Indicated|Inferred)\s+({value}(?:\s+{value}){{2,}})"
+    )
+    vertical = rf"(?:[A-Za-z][A-Za-z ()/–—-]*\s+)?({value}(?:\s+{value}){{2,}})"
+    current = None
+    covered = Counter(native_rows)
+    for index, line in enumerate(lines):
+        if not line:
+            continue
+        labels = {
+            c.casefold() for c in re.findall(r"\b(Measured|Indicated|Inferred)\b", line, re.I)
+        }
+        cells = re.findall(r"(?<![\w/.-])\d[\d,]*(?:\.\d+)?(?![\w/.-])", line)
+        numeric_key = tuple(number(cell) for cell in cells)
+        if covered[numeric_key]:
+            covered[numeric_key] -= 1
+            if labels:
+                current = next(iter(labels)) if len(labels) == 1 else None
+            elif re.match(r"^(?:sub[- ]?total|total)\b", line, re.I):
+                current = None
+            continue
+        if (len(labels) > 1 and re.search(r"Measured\s*(?:and|&|\+)\s*Indicated", line, re.I)) or (
+            not labels and re.match(r"^(?:sub[- ]?total|total)\b", line, re.I)
         ):
-            if re.search(label, header, re.I):
-                commodities.add(commodity)
+            current = None
+            continue
+        match = re.fullmatch(explicit, line, re.I)
+        if match and len(labels) == 1:
+            category, numeric = match[1].casefold(), match[2]
+            current = category
+        else:
+            if labels:
+                current = next(iter(labels)) if len(labels) == 1 else None
+            elif re.search(r"\bTable\s+\d|\b(?:sub[- ]?total|total)\b", line, re.I):
+                current = None
+            if labels:
+                if labels & {"indicated", "inferred"} and tabular_numbers(line):
+                    uncertain = True
+                continue
+            match = re.fullmatch(vertical, line, re.I)
+            if not match:
+                if current in {"indicated", "inferred"} and tabular_numbers(line):
+                    uncertain = True
+                continue
+            category, numeric = current, match[1]
+        if sum(is_number(cell) for cell in numeric.split()) < 3:
+            continue
+        # Never turn a multi-category column body into a guessed row category.
+        if category not in {"indicated", "inferred"}:
+            if category != "measured" and re.search(r"\bIndicated\b|\bInferred\b", text, re.I):
+                uncertain = True
+            continue
+        previous = lines[:index]
+        first_header = next(
+            (
+                i
+                for i in reversed(range(len(previous)))
+                if re.search(r"tonn|\bore\b", previous[i], re.I)
+            ),
+            0,
+        )
+        nearby = " ".join(previous[first_header:])
+        commodities = commodity_labels(nearby)
         if (
             len(commodities) != 1
-            or not re.search(r"tonn", header, re.I)
-            or not re.search(r"g\s*/\s*t|%", header, re.I)
+            or not re.search(r"tonn|\bMt\b|\bkt\b", nearby, re.I)
+            or not re.search(r"g\s*/\s*t|%", nearby, re.I)
         ):
+            uncertain = True
             continue
-        commodity = next(iter(commodities))
-        for line in document.pages.get(page, "").splitlines():
-            text = normalized(line)
-            match = re.fullmatch(pattern, text, re.I)
-            labels = set(re.findall(r"\b(Measured|Indicated|Inferred)\b", text, re.I))
-            if not match or len(labels) != 1 or sum(is_number(v) for v in match[2].split()) < 3:
-                continue
-            source_quote = normalized(match[1] + " " + match[2])
+        inventory.append(
+            {"commodity": next(iter(commodities)), "category": category, "quote": line}
+        )
+    return inventory, uncertain
+
+
+def explicit_row_coverage(candidate, document):
+    """Source-only inventory. Unsupported selected resource layouts are blocking, not silent."""
+    errors = []
+    for page in document.selected_pages:
+        inventory, uncertain, native_rows = [], False, []
+        for table in document.tables.get(page, []):
+            items, unverified = native_inventory(table)
+            inventory.extend(items)
+            uncertain |= unverified
+            parsed = table_columns(table)
+            if items and parsed:
+                native_rows.extend(
+                    tuple(number(cell) for cell in line if is_number(cell))
+                    for line in parsed[0]
+                    if sum(is_number(cell) for cell in line) >= 3
+                )
+        if inventory:
+            # Account for gridless tables on the same page, without double-counting
+            # numeric lines already covered by native cells (including repeated rows).
+            extra, unverified = text_inventory(document.pages.get(page, ""), native_rows)
+            inventory.extend(extra)
+            uncertain |= unverified
+        else:
+            inventory, uncertain = text_inventory(document.pages.get(page, ""))
+        if uncertain or not inventory:
+            errors.append(f"page[{page}]:scope_completeness_unverified")
+        used = set()
+        for item in inventory:
             found = None
             for i, row in enumerate(candidate.rows):
-                quote = normalized(row.evidence.row_quote)
                 if (
-                    i not in used
-                    and row.evidence.page == page
-                    and row.commodity == commodity
-                    and row.category.casefold() == match[1].casefold()
-                    and (source_quote in quote or quote in source_quote)
+                    i in used
+                    or row.evidence.page != page
+                    or row.commodity != item["commodity"]
+                    or row.category.casefold() != item["category"]
                 ):
+                    continue
+                if "raw" in item:
+                    raw = {
+                        "ore": row.evidence.ore_raw,
+                        "grade": row.evidence.grade_raw,
+                        "metal": row.evidence.contained_raw,
+                    }
+                    supported = all(
+                        same_number(raw[field], value) for field, value in item["raw"].items()
+                    )
+                    if item.get("basis"):
+                        expected_basis = identity_text("basis", item["basis"])
+                        actual_basis = identity_text("basis", row.basis)
+                        supported &= actual_basis == expected_basis or (
+                            actual_basis == "total"
+                            and bool(re.search(r"\btotal\b", expected_basis))
+                        )
+                else:
+                    quote = normalized(row.evidence.row_quote.replace("|", " "))
+                    supported = quote in item["quote"] or item["quote"] in quote
+                if supported:
                     found = i
                     break
             if found is None:
                 errors.append(
-                    f"page[{page}]:missing_explicit_resource_row:{commodity}:{source_quote}"
+                    f"page[{page}]:missing_explicit_resource_row:{item['commodity']}:{item['category']}:{item.get('quote', item.get('raw'))}"
                 )
             else:
                 used.add(found)
     return errors
 
 
-def check_row(row: ResourceRow, document: Document) -> list[str]:
+def identity_source_text(text):
+    return normalized(text).casefold().translate(str.maketrans({"–": "-", "—": "-", "−": "-"}))
+
+
+def source_dates(text):
+    months = {
+        name.casefold(): number
+        for number in range(1, 13)
+        for name in (calendar.month_name[number], calendar.month_abbr[number])
+    }
+    month = "(?:" + "|".join(months) + ")"
+    dates = set(re.findall(r"\b\d{4}-\d{2}-\d{2}\b", text))
+    for pattern in (
+        rf"\b({month})\s+(\d{{1,2}})(?:st|nd|rd|th)?[,]?\s+(\d{{4}})\b",
+        rf"\b(\d{{1,2}})(?:st|nd|rd|th)?\s+({month})[,]?\s+(\d{{4}})\b",
+    ):
+        for first, second, year in re.findall(pattern, text, re.I):
+            name, day = (first, second) if first.casefold() in months else (second, first)
+            try:
+                dates.add(date(int(year), months[name.casefold()], int(day)).isoformat())
+            except ValueError:
+                pass
+    return dates
+
+
+def check_identity(row, document):
+    """Weak source provenance, independent of the critic; no truth or filename evidence."""
     errors = []
+    page_text = identity_source_text(document.pages.get(row.evidence.page, ""))
+    visible = identity_source_text(
+        " ".join(document.pages.get(page, "") for page in document.selected_pages)
+    )
+    source = identity_source_text(" ".join(document.pages.values()))
+
+    def contains(value, text):
+        return bool(value and re.search(r"(?<!\w)" + re.escape(value) + r"(?!\w)", text))
+
+    project_parts = identity_source_text(row.project).split(" - ")
+    if not contains(project_parts[0], source) or any(
+        not contains(part, page_text) for part in project_parts[1:]
+    ):
+        errors.append("unverified_identity:project")
+    table = identity_source_text(row.table)
+    table_id = re.fullmatch(r"table\s*(\d+(?:[-.]\d+)*[a-z]?)", table)
+    source_ids = re.findall(r"\btable\s*(\d+(?:\s*[-.]\s*\d+)*[a-z]?)(?!\w|[.-]\s*\d)", page_text)
+    table_supported = (
+        table_id[1] in {re.sub(r"\s+", "", value) for value in source_ids}
+        if table_id
+        else contains(table, page_text)
+    )
+    if not table_supported:
+        errors.append("unverified_identity:table")
+    if row.effective_date.casefold() not in {"", "unknown", "not reported"}:
+        try:
+            effective = date.fromisoformat(row.effective_date).isoformat()
+        except ValueError:
+            effective = None
+        if effective not in source_dates(visible):
+            errors.append("unverified_identity:effective_date")
+    basis = identity_text("basis", identity_source_text(row.basis))
+    if basis == "total":
+        quote = normalized(row.evidence.row_quote)
+        total_labels = [
+            identity_text("basis", identity_source_text(line))
+            for line in document.pages.get(row.evidence.page, "").splitlines()
+            if re.match(r"^total\b", normalized(line), re.I)
+        ]
+        only_qualified = any(
+            re.match(r"^total\s+(?:ug|op)\b", label) for label in total_labels
+        ) and not any(
+            re.match(r"^total(?:$|\s+(?:indicated|inferred|\d)\b)", label) for label in total_labels
+        )
+        if only_qualified or not (
+            re.match(r"^(?:\|\s*)?(?:Indicated|Inferred)\b", quote, re.I)
+            or re.search(r"\btotal\b", page_text, re.I)
+        ):
+            errors.append("unverified_identity:basis")
+    else:
+        basis_source = identity_text(
+            "basis",
+            page_text
+            + " "
+            + " ".join(
+                normalized(str(cell or ""))
+                for table in document.tables.get(row.evidence.page, [])
+                for line in table
+                for cell in line
+            ),
+        )
+        parts = basis.rsplit(" ", 1)
+        supported = contains(basis, basis_source)
+        if len(parts) == 2 and parts[1] in {"op", "ug"}:
+            supported |= contains(parts[0], basis_source) and contains(parts[1], basis_source)
+        if not supported:
+            errors.append("unverified_identity:basis")
+    cutoff = identity_source_text(row.cutoff)
+    if cutoff not in {"", "unknown", "not reported", "not specified"}:
+        numbers = re.findall(r"(?<![\w.])\d+(?:\.\d+)?(?![\w.])", cutoff)
+        if numbers:
+            lines = document.pages.get(row.evidence.page, "").splitlines()
+            cutoff_source = identity_source_text(
+                " ".join(
+                    " ".join(lines[max(0, index - 1) : index + 2])
+                    for index, line in enumerate(lines)
+                    if re.search(r"cut[- ]?offs?|\bcut-\s*$", line, re.I)
+                )
+            )
+            supported = all(
+                re.search(r"(?<![\d.])" + re.escape(value) + r"(?![\d.])", cutoff_source)
+                for value in numbers
+            )
+            # Sensitivity tables report the cut-off in their first CoG column.
+            if (
+                not supported
+                and len(numbers) == 1
+                and re.search(r"\bcog\b", row.evidence.header_quote, re.I)
+            ):
+                quote_numbers = re.findall(r"\d[\d,]*(?:\.\d+)?", row.evidence.row_quote)
+                supported = bool(quote_numbers and same_number(numbers[0], quote_numbers[0]))
+            for unit in ("g/t", "%", "li2o", "au", "cu"):
+                if unit in cutoff and unit not in page_text:
+                    supported = False
+        else:
+            supported = contains(cutoff, page_text)
+        if not supported:
+            errors.append("unverified_identity:cutoff")
+    return errors
+
+
+def check_row(row: ResourceRow, document: Document) -> list[str]:
+    errors = check_identity(row, document)
     ev = row.evidence
     page_text = normalized(document.pages.get(ev.page, ""))
     quote = normalized(ev.row_quote)

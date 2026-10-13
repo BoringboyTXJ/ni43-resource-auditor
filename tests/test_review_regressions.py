@@ -21,6 +21,9 @@ from resource_auditor.models import Candidate, Critique, GroundTruth, ResourceRo
 from resource_auditor.pdf import Document, read_pdf
 from resource_auditor.units import field_units
 
+# Valid controls must provide source provenance for their identity fields.
+SOURCE_IDENTITY = "Synthetic Table 1. Effective January 1, 2025.\n"
+
 
 @pytest.fixture
 def settings(tmp_path):
@@ -68,7 +71,7 @@ def candidate():
 @pytest.fixture
 def document(candidate):
     row = candidate.rows[0]
-    text = (
+    text = SOURCE_IDENTITY + (
         "NI 43-101 Mineral Resources\n" + row.evidence.header_quote + "\n" + row.evidence.row_quote
     )
     return Document("synthetic", "synthetic.pdf", {1: text}, text, [1], True, [])
@@ -124,7 +127,7 @@ def test_opposite_row_category_cannot_be_overridden_by_unrelated_label(
         + "\nIndicated 20 1.00 0.2\n"
         + row.evidence.row_quote
     )
-    document.pages[1] = document.context = text
+    document.pages[1] = document.context = SOURCE_IDENTITY + text
     assert audit(document, settings, BlindHighScore([candidate])).status == "abstain"
 
 
@@ -137,7 +140,7 @@ def test_resource_header_reserve_qualifier_is_not_a_reserve_table(
         f"Mineral Resources ({qualifier} Mineral Reserves) Tonnes (Mt) Cu (%) Copper (Mt)"
     )
     text = "NI 43-101\n" + row.evidence.header_quote + "\n" + row.evidence.row_quote
-    document.pages[1] = document.context = text
+    document.pages[1] = document.context = SOURCE_IDENTITY + text
     result = audit(document, settings, BlindHighScore([candidate]))
     assert result.status == "accepted", result.reasons
 
@@ -223,7 +226,9 @@ def test_known_wrong_candidate_remains_visible_after_later_schema_failures(
 
 def test_reserve_table_itself_still_abstains(settings, candidate, document):
     candidate.rows[0].evidence.header_quote = "Mineral Reserves Tonnes (Mt) Cu (%) Copper (Mt)"
-    document.pages[1] = candidate.rows[0].evidence.header_quote + "\nIndicated 100 1.00 1.0"
+    document.pages[1] = SOURCE_IDENTITY + (
+        candidate.rows[0].evidence.header_quote + "\nIndicated 100 1.00 1.0"
+    )
     assert audit(document, settings, BlindHighScore([candidate])).status == "abstain"
 
 
@@ -231,7 +236,9 @@ def test_category_column_numbers_and_units_cannot_be_borrowed(settings, candidat
     # Both unit pairs appear on the page, but only Mt belongs to the Indicated columns.
     header = "Tonnes (Mt) Cu (%) Copper (Mt) Tonnes (kt) Cu (%) Copper (kt)"
     quote = "Pit 100 1.00 1.0 100 1.00 1.0"
-    document.pages[1] = "NI 43-101 Mineral Resources Indicated Inferred\n" + header + "\n" + quote
+    document.pages[1] = SOURCE_IDENTITY + (
+        "NI 43-101 Mineral Resources Indicated Inferred\n" + header + "\n" + quote
+    )
     document.tables = {
         1: [
             [
@@ -250,8 +257,13 @@ def test_category_column_numbers_and_units_cannot_be_borrowed(settings, candidat
         ]
     }
     ev = candidate.rows[0].evidence
+    candidate.rows[0].basis = "Pit"
     ev.header_quote, ev.row_quote, ev.category_quote = header, quote, "Indicated"
-    assert validate_candidate(candidate, document, False) == []
+    assert check_row(candidate.rows[0], document) == []
+    assert any(
+        "missing_explicit_resource_row" in issue
+        for issue in validate_candidate(candidate, document, False)
+    )
     ev.ore_unit, ev.contained_raw_unit = "kt", "kt"
     candidate.rows[0].ore_mt, candidate.rows[0].contained_metal = 0.1, 1000
     assert audit(document, settings, BlindHighScore([candidate])).status == "abstain"
@@ -312,6 +324,7 @@ def test_vertical_merged_category_cannot_be_borrowed_from_previous_group(
     settings, candidate, document
 ):
     row = candidate.rows[0]
+    row.basis = "Lower Pit"
     row.evidence.row_quote = "Lower Pit 100 1.00 1.0"
     row.evidence.category_quote = "Indicated"
     document.tables = {
@@ -330,7 +343,7 @@ def test_vertical_merged_category_cannot_be_borrowed_from_previous_group(
         + "\nIndicated 20 1.00 0.2\nInferred Upper Pit 30 1.00 0.3\n"
         + row.evidence.row_quote
     )
-    document.pages[1] = document.context = text
+    document.pages[1] = document.context = SOURCE_IDENTITY + text
     assert audit(document, settings, BlindHighScore([candidate])).status == "abstain"
     row.category = "Inferred"
     row.evidence.category_quote = "Inferred"
@@ -365,10 +378,11 @@ def test_disclosure_note_cannot_override_conflicting_column_multiplier(
 
 def test_borderless_vertical_category_is_bound_to_its_own_header(candidate, document):
     row = candidate.rows[0]
+    row.basis = "Pit"
     row.evidence.header_quote = "Ore Tonnes (Mt) Cu Grade (%) Copper (Mt) INDICATED"
     row.evidence.row_quote = "Pit 100 1.00 1.0"
     row.evidence.category_quote = "INDICATED"
-    document.pages[1] = (
+    document.pages[1] = SOURCE_IDENTITY + (
         "NI 43-101 Mineral Resources\n"
         + row.evidence.header_quote
         + "\n"
@@ -376,7 +390,11 @@ def test_borderless_vertical_category_is_bound_to_its_own_header(candidate, docu
         + "\n"
         + "Ore Tonnes (Mt) Cu Grade (%) Copper (Mt) INFERRED\nPit 20 1.00 0.2"
     )
-    assert validate_candidate(candidate, document, False) == []
+    assert check_row(row, document) == []
+    assert any(
+        "missing_explicit_resource_row" in issue
+        for issue in validate_candidate(candidate, document, False)
+    )
     # The old Indicated header cannot support a row in the later Inferred block.
     row.evidence.row_quote = "Pit 20 1.00 0.2"
     row.evidence.ore_raw, row.evidence.contained_raw = "20", "0.2"
@@ -400,7 +418,7 @@ def test_borderless_header_cannot_cross_a_new_table_or_unit_block(candidate, doc
     row.evidence.header_quote = "Ore Tonnes (Mt) Cu Grade (%) Copper (Mt) INDICATED"
     row.evidence.row_quote = "Pit 100 1.00 1.0"
     row.evidence.category_quote = "INDICATED"
-    document.pages[1] = (
+    document.pages[1] = SOURCE_IDENTITY + (
         "NI 43-101 Mineral Resources\n"
         + row.evidence.header_quote
         + "\n"
@@ -419,7 +437,7 @@ def test_borderless_repeated_numeric_row_is_ambiguous(candidate, document):
     row.evidence.header_quote = "Ore Tonnes (Mt) Cu Grade (%) Copper (Mt) INDICATED"
     row.evidence.row_quote = "Pit 100 1.00 1.0"
     row.evidence.category_quote = "INDICATED"
-    document.pages[1] = (
+    document.pages[1] = SOURCE_IDENTITY + (
         "NI 43-101 Mineral Resources\n"
         + row.evidence.header_quote
         + "\n"
@@ -450,7 +468,7 @@ def test_missing_explicit_resource_row_vetoes_blind_approval(settings, candidate
 
 def test_explicit_coverage_counts_repeated_source_rows_separately(settings, candidate, document):
     document.tables = {1: [[["Category", "Tonnes (Mt)", "Cu (%)", "Contained Cu (Mt)"]]]}
-    document.pages[1] = document.context + "\nIndicated 100 1.00 1.0"
+    document.pages[1] = document.context + "\nStockpiles\nIndicated 100 1.00 1.0"
     assert audit(document, settings, BlindHighScore([candidate])).status == "abstain"
     additional = deepcopy(candidate.rows[0])
     additional.basis = "stockpiles"
@@ -475,12 +493,13 @@ def test_basis_method_abbreviations_match_without_merging_locations(settings, ca
     expected["basis"] = "Zone A UG"
     truth = GroundTruth(rows=[expected])
     candidate.rows[0].basis = "Zone A underground"
+    document.pages[1] += "\nZone A UG"
     result = audit(document, settings, BlindHighScore([candidate]))
     assert evaluate(result, truth)["field_accuracy_all"] == 1
-    candidate.rows[0].basis = "Zone B underground"
-    assert evaluate(audit(document, settings, BlindHighScore([candidate])), truth)["coverage"] == 0
-    candidate.rows[0].basis = "Zone A open pit"
-    assert evaluate(audit(document, settings, BlindHighScore([candidate])), truth)["coverage"] == 0
+    result.rows[0].basis = "Zone B underground"
+    assert evaluate(result, truth)["coverage"] == 0
+    result.rows[0].basis = "Zone A open pit"
+    assert evaluate(result, truth)["coverage"] == 0
 
 
 @pytest.mark.parametrize("short,long", [("UG", "underground"), ("OP", "open pit")])
