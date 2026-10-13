@@ -62,6 +62,23 @@ def test_upload_ui_and_openapi_contract_are_available():
         assert "GroundTruth" in client.get("/schema").json()["ground_truth"]["title"]
 
 
+@pytest.mark.parametrize("route", ["/", "/health", "/schema", "/openapi.json"])
+def test_public_responses_do_not_expose_provider_credentials(monkeypatch, route):
+    settings = Settings(
+        RoleConfig(
+            "https://private-extractor.test/v1", "extractor-model", "EXTRACTOR_SECRET_SENTINEL"
+        ),
+        RoleConfig("https://private-critic.test/v1", "critic-model", "CRITIC_SECRET_SENTINEL"),
+    )
+    monkeypatch.setattr(api.Settings, "from_env", lambda: settings)
+    with TestClient(api.app) as client:
+        response = client.get(route)
+    assert response.status_code == 200
+    for role in (settings.extractor, settings.critic):
+        assert role.api_key not in response.text
+        assert role.base_url not in response.text
+
+
 def test_evaluate_does_not_initialize_or_call_models(monkeypatch, result):
     monkeypatch.setattr(
         api.Settings, "from_env", lambda: pytest.fail("evaluation touched model config")

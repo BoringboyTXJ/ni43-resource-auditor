@@ -6,7 +6,7 @@
 
 **开始使用：[RUN.md](RUN.md)**。本地网页提供 PDF 上传、结果下载和单独的 ground truth 评分；也可使用 CLI 或 FastAPI。工程使用 `src/` 布局、锁定依赖、类型化 JSON schema、测试、Ruff、CI 和单进程 Docker 服务。
 
-评审方下载后可按 [Docker 快速部署](RUN.md#评审方快速部署docker) 复制并填写两个模型 API 的 `.env`，运行 `docker compose up --build -d`，打开 `http://127.0.0.1:8000`。无需单独安装 Python、MinerU、OCR 模型或配置解析器路径，也无需 GPU。首次构建联网下载依赖和 OCR 模型；随后 OCR 使用镜像内模型。私有仓库需先获得访问权限；源码 ZIP 同样可运行，API 密钥由测试方自行配置。
+评审方可直接克隆公开仓库或下载源码 ZIP，按 [Docker 快速部署](RUN.md#评审方快速部署docker) 复制并填写两个模型 API 的 `.env`，运行 `docker compose up --build -d`，打开 `http://127.0.0.1:8000`。无需单独安装 Python、MinerU、OCR 模型或配置解析器路径，也无需 GPU。首次构建联网下载依赖和 OCR 模型；随后 OCR 使用镜像内模型。仓库不附带模型密钥，API 密钥由测试方自行配置。
 
 ```mermaid
 flowchart LR

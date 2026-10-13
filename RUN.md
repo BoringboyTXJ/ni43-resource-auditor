@@ -4,7 +4,7 @@
 
 准备 Docker Engine / Docker Desktop（使用 Linux 容器）和 Docker Compose，以及两个不同模型的 API 地址、模型标识和密钥。Docker 已包含 Python、MinerU 4.0.11 和 Basic CPU OCR/表格模型，无需单独安装解析器、填写解释器路径或准备 GPU。首次构建需要联网下载镜像、依赖和 OCR 模型，实际耗时取决于网络；后续启动使用已构建的镜像。
 
-仓库目前私有，克隆者需要已获仓库访问权限并完成 GitHub 认证；也可取得源码 ZIP，解压到包含 `compose.yaml` 的目录后从配置步骤开始。
+仓库公开，无需 GitHub 认证即可克隆；也可在仓库页面选择 Code → Download ZIP，解压到包含 `compose.yaml` 的目录后从配置步骤开始。
 
 ```bash
 git clone https://github.com/BoringboyTXJ/ni43-resource-auditor.git
