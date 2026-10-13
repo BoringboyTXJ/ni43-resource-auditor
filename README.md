@@ -6,6 +6,8 @@
 
 **开始使用：[RUN.md](RUN.md)**。本地网页提供 PDF 上传、结果下载和单独的 ground truth 评分；也可使用 CLI 或 FastAPI。工程使用 `src/` 布局、锁定依赖、类型化 JSON schema、测试、Ruff、CI 和单进程 Docker 服务。
 
+评审方下载后可按 [Docker 快速部署](RUN.md#评审方快速部署docker) 复制并填写 `.env`，运行 `docker compose up --build -d`，打开 `http://127.0.0.1:8000`。私有仓库需先获得访问权限；源码 ZIP 同样可运行，密钥由测试方自行配置。
+
 ```mermaid
 flowchart LR
     PDF[上传 PDF] --> Parse[pdfplumber / MinerU\n页码与证据]

@@ -2,6 +2,9 @@
 .env
 .env.*
 .venv
+.mineru
+.secrets
+**/github-token.txt
 __pycache__
 .pytest_cache
 .ruff_cache

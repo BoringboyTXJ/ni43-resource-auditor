@@ -1,5 +1,36 @@
 # 运行与验收
 
+## 评审方快速部署（Docker）
+
+准备 Docker Engine / Docker Desktop 和 Docker Compose，以及两个不同模型的 API 地址、模型标识和密钥。模型由外部 API 提供，基础服务无需本地 GPU 或安装 Python。首次构建需要联网下载镜像与依赖，实际耗时取决于网络。
+
+仓库目前私有，克隆者需要已获仓库访问权限并完成 GitHub 认证；也可取得源码 ZIP，解压到包含 `compose.yaml` 的目录后从配置步骤开始。
+
+```bash
+git clone https://github.com/BoringboyTXJ/ni43-resource-auditor.git
+cd ni43-resource-auditor
+```
+
+Windows PowerShell 复制配置模板：
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Linux/macOS 使用 `cp .env.example .env`。然后编辑 `.env`，填写 `EXTRACTOR_BASE_URL`、`EXTRACTOR_MODEL`、`EXTRACTOR_API_KEY` 和 `CRITIC_BASE_URL`、`CRITIC_MODEL`、`CRITIC_API_KEY`；两种协议及 DeepSeek/Qwen 开关示例见下一节。不要把此文件提交到 Git。
+
+```bash
+docker compose up --build -d
+docker compose ps
+docker compose logs -f auditor
+```
+
+打开 <http://127.0.0.1:8000>。页面应显示两个模型已配置；<http://127.0.0.1:8000/health> 的 `models_configured` 应为 `true`。此项只核对配置格式，实际权限、额度和连通性需上传 PDF 后确认。网页第一步上传 PDF 并下载结果 JSON，第二步用结果和独立 ground truth JSON 评分。
+
+服务默认只允许本机访问，适合面试验收。演化日志保存在 `audit_data` 命名卷，停止服务使用 `docker compose down`，重新启动会保留日志。修改 `.env` 后执行 `docker compose up -d --force-recreate`，将新配置传入容器。API、PDF 限制、解析器及思考/结构化输出开关均显式传递；日志路径固定为容器的 `/app/data/evolution.jsonl`。
+
+基础镜像不含 MinerU，英文文本 PDF 可直接解析。中文或扫描件需要 MinerU 时，建议先按第 6 节在本机运行；定制容器时，`MINERU_PYTHON` 必须指向容器中实际安装的解释器，不能填宿主机 Windows 路径。该项目没有登录和权限管理，当前 Compose 用于本地验收。
+
 ## 1. 配置两个模型
 
 需要 Python 3.11+ 和 [uv](https://docs.astral.sh/uv/)，或 Docker Compose。复制 `.env.example` 为 `.env`，在本机填入两个角色的接口、模型标识和密钥。`.env`、PDF、运行结果和演化日志均被 Git 忽略。

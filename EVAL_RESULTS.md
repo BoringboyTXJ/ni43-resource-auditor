@@ -1,6 +1,14 @@
 # 验收记录
 
-开发环境：Windows、Python 3.11.9。记录更新于 2026-10-10。
+开发环境：Windows、Python 3.11.9。记录更新于 2026-10-14。
+
+## 部署配置复核（2026-10-14）
+
+发现 Compose 遗漏了后来新增的按角色 JSON Schema / 思考开关，以及解析器和预算配置。新增一个使用虚构密钥与非默认配置的 Compose 回归测试，先在原文件上复现配置缺失，再补齐 `.env.example` 中的全部配置传递；容器日志路径仍固定为持久卷内的 `/app/data/evolution.jsonl`。基础镜像仍不捆绑 MinerU；容器中的解释器须自行安装并使用容器内路径。
+
+本轮仓库测试 **100 项通过**，包含新的 Docker Compose 配置回归；Ruff lint / format、Compose 配置检查和 diff 检查通过。该回归仅需 Compose CLI，不需 Docker daemon；没有 Docker CLI 时明确跳过，CI 环境安装 Compose 后运行。起初完整测试被 Windows 沙箱本机 socket 限制阻塞，最小 asyncio 事件循环也挂在 `socketpair`；放行测试所需网络后正常完成，没有修改业务代码。
+
+新增评审方从私有仓库或源码 ZIP 部署的说明，明确配置、健康检查、修改配置后重建容器及 MinerU 边界。本轮没有新增真实模型抽取，下面的数值和模型评分仍是原有开发记录；Docker 镜像构建与实际容器运行检查由仓库 CI 执行。
 
 ## 自动化检查
 
