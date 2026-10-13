@@ -5,7 +5,7 @@
 - [pdfplumber](https://github.com/jsvine/pdfplumber)：MIT；基础 PDF 文本/表格读取。
 - [FastAPI](https://github.com/fastapi/fastapi)：MIT；上传、schema 和 API。
 - [Pydantic](https://github.com/pydantic/pydantic)：MIT；结构化结果校验。
-- [MinerU](https://github.com/opendatalab/MinerU)：可选解析器，独立运行；本应用使用其官方 Python SDK。使用 MinerU 的标识已在页面和文档中保留。[上游许可](https://github.com/opendatalab/MinerU/blob/master/LICENSE.md)包含 Apache 2.0 的附加条款，模型另有各自许可。本项目 MIT 不覆盖这些组件、模型或原始报告。
+- [MinerU](https://github.com/opendatalab/MinerU)：独立运行；本应用使用其官方 Python SDK。默认 Docker 镜像安装 4.0.11，并在构建时通过官方下载器取得 `opendatalab/MinerU-4_models_onnx` 的 Basic 模型。使用 MinerU 的标识已在页面和文档中保留。[上游许可](https://github.com/opendatalab/MinerU/blob/master/LICENSE.md)包含 Apache 2.0 的附加条款，模型另有各自许可。本项目 MIT 不覆盖这些组件、模型或原始报告。
 
 `examples/public_sources.json` 中的 PDF 归各发布方所有。仓库只提供原始 URL、SHA-256 和小规模数值标注，不打包或重新授权 PDF。标注是开发者从渲染后的资源表转录核对的参考数据，属于单人核对，未经发布方背书。使用 `scripts/download_samples.py` 可按需从发布方下载。
 

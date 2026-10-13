@@ -55,7 +55,7 @@ class Settings:
     max_selected_pages: int = 24
     pdf_parser: str = "auto"
     mineru_python: str = ""
-    mineru_tier: str = "standard"
+    mineru_tier: str = "basic"
     mineru_timeout: int = 300
     stream: bool = True
 
@@ -92,7 +92,7 @@ class Settings:
             max_selected_pages=int(os.getenv("MAX_SELECTED_PAGES", "24")),
             pdf_parser=os.getenv("PDF_PARSER", "auto").strip().lower(),
             mineru_python=os.getenv("MINERU_PYTHON", "").strip(),
-            mineru_tier=os.getenv("MINERU_TIER", "standard").strip().lower(),
+            mineru_tier=os.getenv("MINERU_TIER", "basic").strip().lower(),
             mineru_timeout=int(os.getenv("MINERU_TIMEOUT_SECONDS", "300")),
             stream=os.getenv("LLM_STREAM", "true").lower() == "true",
         )

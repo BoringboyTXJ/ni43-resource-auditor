@@ -19,6 +19,9 @@ jobs:
       - run: uv run --frozen pytest -q
       - run: docker compose config --quiet
       - run: docker build -t resource-auditor:ci .
+      - name: Verify bundled Chinese scan OCR without network or model credentials
+        run: |
+          docker run --rm --network none --mount type=bind,source="$PWD/scripts/check_bundled_ocr.py",target=/app/check_bundled_ocr.py,readonly resource-auditor:ci python /app/check_bundled_ocr.py
       - name: Smoke-test the image and persistent volume
         run: |
           docker run -d --name audit-ci -p 127.0.0.1:8000:8000 --mount type=volume,source=audit-ci-data,target=/app/data resource-auditor:ci

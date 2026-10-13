@@ -2,9 +2,19 @@
 
 开发环境：Windows、Python 3.11.9。记录更新于 2026-10-14。
 
+## 默认捆绑 MinerU CPU OCR（2026-10-14）
+
+默认 Docker 镜像加入 MinerU 4.0.11 独立解释器和 Basic ONNX OCR/表格模型；全部 111 个解析器依赖固定版本并使用官方 PyPI SHA-256 校验。模型由官方下载器在构建时下载、核验，以 UID 10001 运行用户保存；运行时只允许本地模型。Compose 固定容器解释器和模型目录，默认 `basic`，不再要求评审方手动安装 MinerU 或填写主机路径。
+
+新增默认配置回归，在旧版复现缺少解释器后通过。实际以已安装 MinerU 4.0.11 / ONNX 模型运行 `scripts/check_bundled_ocr.py`：生成一页无文本层的中文扫描资源表，自动路由到 MinerU，原页码为 1；识别中文标题、Indicated/Inferred 两行、矿石量 10.0/5.0、品位 1.00 和金属量 321.5/160.8，并保留 Markdown 表格结构。此项是受控合成解析测试，不调用 LLM，也不是隐藏报告准确率。
+
+CI 新增真实 Docker OCR 检查：非 root 用户、`--network none`、无模型 API 凭据，实际走应用 `read_pdf` 和独立进程桥接，验证同一份控制扫描表。英文原生文本继续使用 pdfplumber；三轮审核、评分、规则校验和无法核验时弃答保持原有要求。本轮没有新增双模型准确率结果；Basic 对复杂版面的质量仍须由评审方独立测试。
+
+本地 **101 项测试通过**，Ruff lint / format、Compose 配置及 diff 检查通过。OCR 模型文件约 858 MB（官方包，含缓存元数据），构建下载耗时不属于五分钟运行承诺；Linux 镜像的真实运行检查由当前提交对应 CI 执行。
+
 ## 部署配置复核（2026-10-14）
 
-发现 Compose 遗漏了后来新增的按角色 JSON Schema / 思考开关，以及解析器和预算配置。新增一个使用虚构密钥与非默认配置的 Compose 回归测试，先在原文件上复现配置缺失，再补齐 `.env.example` 中的全部配置传递；容器日志路径仍固定为持久卷内的 `/app/data/evolution.jsonl`。基础镜像仍不捆绑 MinerU；容器中的解释器须自行安装并使用容器内路径。
+发现 Compose 遗漏了后来新增的按角色 JSON Schema / 思考开关，以及解析器和预算配置。新增一个使用虚构密钥与非默认配置的 Compose 回归测试，先在原文件上复现配置缺失，再补齐 `.env.example` 中的全部配置传递；容器日志路径仍固定为持久卷内的 `/app/data/evolution.jsonl`。该轮 `7f841d5` 尚未捆绑 MinerU，此限制已由上面的新部署方案替代。
 
 本轮仓库测试 **100 项通过**，包含新的 Docker Compose 配置回归；Ruff lint / format、Compose 配置检查和 diff 检查通过。该回归仅需 Compose CLI，不需 Docker daemon；没有 Docker CLI 时明确跳过，CI 环境安装 Compose 后运行。起初完整测试被 Windows 沙箱本机 socket 限制阻塞，最小 asyncio 事件循环也挂在 `socketpair`；放行测试所需网络后正常完成，没有修改业务代码。
 

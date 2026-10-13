@@ -34,7 +34,8 @@ def test_compose_preserves_model_and_parser_settings(tmp_path):
         "MINERU_TIMEOUT_SECONDS": "450",
     }
     env_file = tmp_path / "synthetic.env"
-    env_file.write_text("\n".join(f"{k}={v}" for k, v in expected.items()), encoding="utf-8")
+    provided = {**expected, "MINERU_PYTHON": "C:/host-only/mineru/python.exe"}
+    env_file.write_text("\n".join(f"{k}={v}" for k, v in provided.items()), encoding="utf-8")
     # Avoid loading developer credentials through process-level interpolation.
     child_env = {k: v for k, v in os.environ.items() if k not in template}
     result = subprocess.run(
@@ -52,3 +53,29 @@ def test_compose_preserves_model_and_parser_settings(tmp_path):
     assert set(template) <= set(configured)
     assert {key: configured.get(key) for key in expected} == expected
     assert configured["EVOLUTION_LOG"] == "/app/data/evolution.jsonl"
+
+
+def test_compose_bundles_offline_cpu_ocr_by_default(tmp_path):
+    docker = shutil.which("docker")
+    if not docker:
+        pytest.skip("Docker Compose is required for the deployment configuration check")
+    root = Path(__file__).resolve().parents[1]
+    env_file = tmp_path / "empty.env"
+    env_file.write_text("", encoding="utf-8")
+    child_env = {k: v for k, v in os.environ.items() if not k.startswith("MINERU_")}
+    result = subprocess.run(
+        [docker, "compose", "--env-file", str(env_file), "config", "--format", "json"],
+        cwd=root,
+        env=child_env,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=True,
+        timeout=30,
+    )
+    configured = json.loads(result.stdout)["services"]["auditor"]["environment"]
+    assert configured["MINERU_PYTHON"] == "/opt/mineru/bin/python"
+    assert configured["MINERU_TIER"] == "basic"
+    assert configured["MINERU_HOME"] == "/opt/mineru-home"
+    assert configured["MINERU_MODEL_SOURCE"] == "local"
+    assert configured["MINERU_MODEL_SMALL_BACKEND"] == "onnx"

@@ -2,7 +2,7 @@
 
 ## 评审方快速部署（Docker）
 
-准备 Docker Engine / Docker Desktop 和 Docker Compose，以及两个不同模型的 API 地址、模型标识和密钥。模型由外部 API 提供，基础服务无需本地 GPU 或安装 Python。首次构建需要联网下载镜像与依赖，实际耗时取决于网络。
+准备 Docker Engine / Docker Desktop（使用 Linux 容器）和 Docker Compose，以及两个不同模型的 API 地址、模型标识和密钥。Docker 已包含 Python、MinerU 4.0.11 和 Basic CPU OCR/表格模型，无需单独安装解析器、填写解释器路径或准备 GPU。首次构建需要联网下载镜像、依赖和 OCR 模型，实际耗时取决于网络；后续启动使用已构建的镜像。
 
 仓库目前私有，克隆者需要已获仓库访问权限并完成 GitHub 认证；也可取得源码 ZIP，解压到包含 `compose.yaml` 的目录后从配置步骤开始。
 
@@ -29,7 +29,7 @@ docker compose logs -f auditor
 
 服务默认只允许本机访问，适合面试验收。演化日志保存在 `audit_data` 命名卷，停止服务使用 `docker compose down`，重新启动会保留日志。修改 `.env` 后执行 `docker compose up -d --force-recreate`，将新配置传入容器。API、PDF 限制、解析器及思考/结构化输出开关均显式传递；日志路径固定为容器的 `/app/data/evolution.jsonl`。
 
-基础镜像不含 MinerU，英文文本 PDF 可直接解析。中文或扫描件需要 MinerU 时，建议先按第 6 节在本机运行；定制容器时，`MINERU_PYTHON` 必须指向容器中实际安装的解释器，不能填宿主机 Windows 路径。该项目没有登录和权限管理，当前 Compose 用于本地验收。
+默认 `PDF_PARSER=auto`：英文文本使用 pdfplumber，中文或扫描页自动调用镜像内 MinerU。Docker 的 `MINERU_PYTHON` 固定为 `/opt/mineru/bin/python`，忽略主机的解释器路径；保留模板中的 `MINERU_TIER=basic` 即可。OCR 不需要额外 API key；抽取与审核仍需要前述两个模型 API。该项目没有登录和权限管理，当前 Compose 用于本地验收。
 
 ## 1. 配置两个模型
 
@@ -177,7 +177,9 @@ uv run --frozen resource-auditor replay --pdf-dir data/public --log data/evoluti
 
 ## 6. 中文或扫描 PDF：MinerU
 
-本应用显式使用 **MinerU**，复用其 [4.x 官方 SDK](https://opendatalab.github.io/MinerU/usage/sdk_api/)；基础环境不捆绑它的模型依赖。安装独立环境，固定当前接入版本：
+推荐使用 Docker：默认镜像已装好 **MinerU 4.0.11** 的独立环境及 [Basic 模式](https://opendatalab.github.io/MinerU/usage/tiers/)所需 ONNX 模型，CPU 即可完成 OCR 与表格解析。构建时以应用运行用户下载模型到 `/opt/mineru-home`，运行时设置 `MINERU_MODEL_SOURCE=local`；上传中文或扫描 PDF 时不会临时下载模型，也不会上传到 MinerU 官网。不要把 `MINERU_TIER` 改成 standard/advanced：这两个模式还需要额外 VLM 模型，默认镜像没有包含。
+
+只有选择直接用本机 Python 启动时，才需要手动安装独立环境，复用 [4.x 官方 SDK](https://opendatalab.github.io/MinerU/usage/sdk_api/)：
 
 ```bash
 uv venv .mineru
@@ -191,15 +193,15 @@ PDF_PARSER=auto
 # Windows: 绝对路径，例如 D:/projects/auditor/.mineru/Scripts/python.exe
 # Linux/macOS: /absolute/path/to/.mineru/bin/python
 MINERU_PYTHON=/absolute/path/to/.mineru/bin/python
-MINERU_TIER=standard
+MINERU_TIER=basic
 MINERU_TIMEOUT_SECONDS=300
 ```
 
-`.mineru` 应在 Git 中排除。模型需要按[官方安装说明](https://opendatalab.github.io/MinerU/quick_start/)提前准备，首次下载可能较久；默认 standard，不需手工指定未核实的模型 endpoint。可先用 `MINERU_TIER=flash` 验证本机 SDK 文本解析链路，flash 不是扫描件质量验收。
+`.mineru` 已在 Git 中排除。在本机独立环境中执行 `mineru-kit models download --tier basic --small-backend onnx --source auto` 和 `mineru-kit models verify --tier basic --small-backend onnx`，并设置 `MINERU_MODEL_SMALL_BACKEND=onnx`。模型缓存默认由 MinerU 管理；首次下载可能较久。完整说明见[官方模型配置文档](https://opendatalab.github.io/MinerU/usage/model_source/)。这一节手动安装仅适用于非 Docker 运行。
 
 `auto` 检测开头中文文本或选择页缺少可核验文本层时优先尝试 MinerU；混合文本/扫描 PDF 同样触发。英文文本使用 pdfplumber。语言探测是启发式，英文封面下的中文正文可设 `PDF_PARSER=mineru` 明确选择；`pdfplumber` 可强制基础解析器，但无法核验的扫描页仍会弃答。MinerU 仅处理选择页及前十页的标准证据；无文本的大扫描报告先指定资源表页码，避免无上限 OCR。最多 24 个资源相关页，超出弃答。
 
-当前桥接只调用本地 `parse()`，不会上传到 MinerU 官网。模型下载会联网；两个审核模型仍接收解析文本。MinerU 没装、超时、缺页或失效会记录原因；回退原文本层仍不足时转人工。原始页索引沿用，不将选出的第 19 页重编号为第 1 页。基础 Compose 容器内没有该独立解释器，主机 Windows 的解释器路径不能在 Linux 容器中使用；中文 OCR 可先使用本机启动方式。
+当前桥接只调用本地 `parse()`；两个抽取/审核模型仍接收解析文本。Basic 的复杂版面处理质量有边界，无法保证未知报告的 OCR 准确率。超时、缺页或解析失败会记录原因；回退原文本层仍不足时转人工。原始页索引沿用，不将选出的第 19 页重编号为第 1 页。CPU 处理大量扫描页可能超过默认 300 秒，可调 `MINERU_TIMEOUT_SECONDS`（最大 1800）或指定资源表页码；超时仍弃答。
 
 ## 7. 工程验证
 
@@ -210,4 +212,4 @@ uv run --frozen pytest -q
 docker compose config --quiet
 ```
 
-CI 重跑 lint、format、测试和 Docker 构建。单元测试以受控假模型验证失败和弃答路径；真实模型指标另行记录，不混称为真实双模型测试。对于新的、未知的报告，应重新进行独立 truth 评测。
+CI 重跑 lint、format、测试和 Docker 构建，并以非 root 用户在断网容器内实际解析一页无文本层的中文扫描资源表，检查中文文字、类别、数值、表格结构和原页码；随后检查 API 启动及持久卷写入。此 OCR 检查不调用抽取/审核模型。单元测试以受控假模型验证失败和弃答路径；真实模型指标另行记录，不混称为真实双模型测试。对于新的、未知的报告，应重新进行独立 truth 评测。
