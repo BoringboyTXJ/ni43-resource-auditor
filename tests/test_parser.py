@@ -1,9 +1,11 @@
+import json
 from dataclasses import replace
+from pathlib import Path
 
 import pytest
 
 from resource_auditor.config import RoleConfig, Settings
-from resource_auditor.pdf import read_pdf
+from resource_auditor.pdf import read_pdf, resource_pages
 
 
 @pytest.fixture
@@ -130,7 +132,7 @@ def test_mixed_pdf_ocr_failure_keeps_scan_as_blocking_issue(monkeypatch, setting
 
     monkeypatch.setattr("resource_auditor.pdf.parse_mineru", fail)
     doc = read_pdf(b"%PDF-test", "mixed.pdf", replace(settings, mineru_python="python"), "1-2")
-    assert calls == [[1, 2]]
+    assert calls == [[2]]
     assert "unverified_scan_pages: 2" in doc.issues
     assert doc.selected_pages == [1, 2]
 
@@ -138,11 +140,12 @@ def test_mixed_pdf_ocr_failure_keeps_scan_as_blocking_issue(monkeypatch, setting
 def test_mixed_pdf_successful_ocr_preserves_selected_scope(monkeypatch, settings):
     text = "NI 43-101 Mineral Resources Tonnes (Mt) Au (g/t) Gold (koz)\nIndicated 10 1.00 321.5"
     stub_pdf(monkeypatch, [text, ""])
-    parsed = {1: text, 2: text.replace("Indicated", "Inferred")}
+    parsed = {1: "unexpected OCR replacement", 2: text.replace("Indicated", "Inferred")}
     monkeypatch.setattr("resource_auditor.pdf.parse_mineru", lambda *a: (parsed, "4.0.11"))
     doc = read_pdf(b"%PDF-test", "mixed.pdf", replace(settings, mineru_python="python"), "1-2")
     assert doc.selected_pages == [1, 2] and not doc.issues
-    assert "Inferred" in doc.pages[2] and doc.parser == "mineru:4.0.11"
+    assert "Inferred" in doc.pages[2] and doc.parser == "pdfplumber+mineru:4.0.11"
+    assert doc.pages[1] == text
 
 
 def test_genuinely_blank_page_is_excluded_with_explicit_note(monkeypatch, settings):
@@ -155,3 +158,46 @@ def test_genuinely_blank_page_is_excluded_with_explicit_note(monkeypatch, settin
     doc = read_pdf(b"%PDF-test", "blank.pdf", settings, "1-2")
     assert doc.selected_pages == [1] and not doc.issues
     assert doc.parser_notes == ["blank_pages_excluded: 2"]
+
+
+def test_scan_cover_ocr_does_not_replace_native_resource_pages(monkeypatch, settings):
+    native = (
+        "NI 43-101 Mineral Resources Tonnes (Mt) Au (g/t) Gold (koz)\n"
+        "Indicated 10 1.00 321.5\nInferred 5 1.00 160.8"
+    )
+    pdf = PDF(["", native])
+    calls = []
+    table = [
+        ["Classification", "Tonnes (Mt)", "Au (g/t)", "Gold (koz)"],
+        ["Indicated", "10", "1.00", "321.5"],
+    ]
+    pdf.pages[1].extract_tables = lambda: [table]
+    monkeypatch.setattr("resource_auditor.pdf.pdfplumber.open", lambda *a, **k: pdf)
+
+    def parse(data, config, selected):
+        calls.append(selected)
+        return {
+            page: (
+                "NI 43-101 Technical Report. Prepared for Example Mining Corporation. "
+                "Report effective date December 31, 2025."
+                if page == 1
+                else "<table>Mineral Resources Indicated Inferred</table>"
+            )
+            for page in selected
+        }, "4.0.11"
+
+    monkeypatch.setattr("resource_auditor.pdf.parse_mineru", parse)
+    doc = read_pdf(b"%PDF-test", "unseen.pdf", replace(settings, mineru_python="python"))
+    assert calls == [[1]]
+    assert doc.selected_pages == [2] and not doc.issues
+    assert doc.pages[2] == native and doc.tables[2] == [table]
+    assert doc.parser == "pdfplumber+mineru:4.0.11"
+
+
+def test_newmont_native_table_windows_are_selected():
+    fixture = json.loads(
+        (Path(__file__).parent / "fixtures/newmont_selection.json").read_text(encoding="utf-8")
+    )
+    texts = {int(page): text for page, text in fixture["pages"].items()}
+    texts[19] = "Mineral Resources are classified as Indicated and Inferred. See Table 14-5."
+    assert resource_pages(texts, fixture["page_count"]) == fixture["expected_pages"]

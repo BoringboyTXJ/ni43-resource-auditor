@@ -42,7 +42,24 @@ def load_truth(raw: bytes, mapping: dict | None = None) -> GroundTruth:
             ],
         }
         defaults = mapping.get("defaults", {})
-        data["rows"] = [{**defaults, **row} for row in data["rows"]]
+        unit_defaults = mapping.get("unit_defaults_by_commodity", {})
+        if not isinstance(unit_defaults, dict) or any(
+            commodity not in {"Au", "Cu", "Li2O"}
+            or not isinstance(units, dict)
+            or set(units) - {"grade_unit", "contained_unit"}
+            for commodity, units in unit_defaults.items()
+        ):
+            raise ValueError(
+                "unit_defaults_by_commodity must map supported commodities to unit fields only"
+            )
+        data["rows"] = [
+            {
+                **defaults,
+                **unit_defaults.get(row.get("commodity", defaults.get("commodity")), {}),
+                **row,
+            }
+            for row in data["rows"]
+        ]
     return GroundTruth.model_validate(data)
 
 

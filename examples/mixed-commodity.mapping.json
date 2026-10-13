@@ -1,0 +1,21 @@
+{
+  "rows_key": "items",
+  "document_id_key": "metadata.sha256",
+  "fields": {
+    "category": "class",
+    "commodity": "metal",
+    "ore_mt": "tonnage_mt",
+    "grade": "grade",
+    "contained_metal": "contained"
+  },
+  "unit_defaults_by_commodity": {
+    "Au": {
+      "grade_unit": "g/t",
+      "contained_unit": "oz"
+    },
+    "Cu": {
+      "grade_unit": "%",
+      "contained_unit": "t"
+    }
+  }
+}

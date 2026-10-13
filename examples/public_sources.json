@@ -30,5 +30,17 @@
     "standard": "JORC",
     "truth": "pilbara-jorc.truth.json",
     "note": "Extra JORC/Li2O case. Requires explicit --allow-jorc; never treated as NI 43-101."
+  },
+  {
+    "id": "newmont-tanami",
+    "file": "newmont-tanami.pdf",
+    "url": "https://minedocs.com/20/Tanami-TR-12312018.pdf",
+    "sha256": "8d3e5876dc8c9c0c75967dcdba8b543d4eb740b48295140d2a078601dc928c19",
+    "pages": "22",
+    "standard": "NI43-101",
+    "truth": "newmont-tanami.truth.json",
+    "automatic_truth": "newmont-tanami.automatic.truth.json",
+    "note": "Newmont Tanami NI 43-101 (March 2019, effective 2018-12-31). PDF hosted by MineDocs mirror. Summary/detail tables overlap, as do total and subgroup rows. Automatic parser selection validated; complex table extraction must be evaluated separately.",
+    "publisher_reference_url": "https://operations.newmont.com/_doc/Newmont-2019-Reserves-and-Resources-Release.pdf"
   }
 ]

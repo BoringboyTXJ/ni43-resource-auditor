@@ -2,6 +2,18 @@
 
 开发环境：Windows、Python 3.11.9。记录更新于 2026-10-14。
 
+## Newmont 自动选页与混合矿种答案映射（2026-10-14）
+
+新增公开 Newmont Tanami Operations NI 43-101 报告（March 2019，生效日 2018-12-31，204 页），从 [MineDocs 镜像](https://minedocs.com/20/Tanami-TR-12312018.pdf) 下载并固定 SHA-256；发行方的 [2018 资源量披露](https://operations.newmont.com/_doc/Newmont-2019-Reserves-and-Resources-Release.pdf) 也列明该技术报告。它是公开开发样本，不是招聘方的隐藏 Newmont PDF。逐页检查含资源分类的页面，并渲染核对 PDF 22/147 页（印刷 11/136 页）：Table 1-3 与 Table 14-5 各 6 条 Indicated/Inferred 行，摘要与正文重复披露但表号不同，独立标注分别保留，不能求和。
+
+真实默认解析暴露图片封面的连带影响：旧实现对封面、前十页和已选资源页一起 OCR，覆盖原生文本后选页从 22/147 变成空集合，产生 `no_resource_table_or_text_layer`。先新增回归复现，再修改共有 `read_pdf`：混合英文文档仅对缺少文本的页面调用 MinerU，保留其他页面的原生文本与单元格。真实 MinerU 4.0.11 Basic CPU 复测选中 **22/147 两页**、无解析阻断项，两个资源页的文本和原生表格与修复前原文本层逐项完全相同。资源表窗口作为来源片段加入回归，不按公司、文件名或固定页码编写解析分支。
+
+随后以完整 PDF、空页码、关闭 few-shot 实际调用 DeepSeek `deepseek-v4-flash` 和 Qwen `qwen3.8-max`，其余设置沿用前述直连验收配置；答案在三轮结束后才加载。**最终 abstain / 3 轮 / Qwen 9、9、9，已接受 0 行，字段正确 0/36、覆盖率 0%，已接受字段准确率 null。** 无网络或 schema 失败；阻断来自类别列对应无法核验、来源行清单无法建立，部分轮次另有合计 basis 来源问题。这种原生表格的多组并列与合并单元格布局尚不能可靠校验，未为获得接受结果放宽原有 P0 门槛。选页问题已修复，完整抽取覆盖率仍未解决；手工指定 22/147 也不能消除这些表格校验限制。模型高分不等于通过。
+
+混合 Au/Cu 的评审答案缺少逐行单位时，新增显式 `unit_defaults_by_commodity` 配置；已有逐行单位优先于矿种默认值，再优先于全局 defaults。配置只允许单位字段，不读取预测、不猜单位、不换算答案。公开模板经 CLI 与 `/evaluate` 的控制输入验证均为 **6/6 字段、100% 覆盖**；故意给行配置冲突单位时保留冲突并扣分，错误文档哈希仍拒绝。此项是合成接口一致性测试，不是模型准确率。
+
+本轮 **138 项测试通过**，包含 24 项原有 P0 回归；Ruff lint/format、Compose 配置与 diff 检查通过。机器可读摘要见 [input-validation.json](examples/input-validation.json)，保留 Newmont 的零覆盖结果，不覆盖旧开发成绩。
+
 ## 独立审查 P0 修复（2026-10-14）
 
 独立审查针对 `9d207774cbe63415d8e28b4be8de20fc083b925d`。已复现原版在 Barrick 双表页及 Kinross 无边框页遗漏行仍无规则问题，以及凭空填写项目/表号/日期/cutoff 缺少规则否决。修复不更换架构：复用原生字段/类别列映射建立来源清单，补充文本与竖排类别组，同时核对同页额外无边框行；无法核验的范围以 `scope_completeness_unverified` 阻断。身份字段增加弱来源定位，不能定位即 `unverified_identity`。详细边界见 [DATA_NOTES.md](DATA_NOTES.md)。

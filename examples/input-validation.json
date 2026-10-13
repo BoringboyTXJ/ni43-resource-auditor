@@ -1,0 +1,203 @@
+{
+  "date": "2026-10-14",
+  "purpose": "Validate public Newmont automatic selection and explicit mixed-commodity truth mapping, without changing acceptance gates.",
+  "newmont_selection": {
+    "source_url": "https://minedocs.com/20/Tanami-TR-12312018.pdf",
+    "host": "MineDocs mirror; report authored by Newmont",
+    "document_id": "8d3e5876dc8c9c0c75967dcdba8b543d4eb740b48295140d2a078601dc928c19",
+    "pdf_page_count": 204,
+    "manually_verified_resource_pages": [
+      22,
+      147
+    ],
+    "before": {
+      "parser": "mineru:4.0.11",
+      "selected_pages": [],
+      "issues": [
+        "no_resource_table_or_text_layer"
+      ],
+      "context_chars": 107,
+      "seconds": 64.3
+    },
+    "after": {
+      "parser": "pdfplumber+mineru:4.0.11",
+      "selected_pages": [
+        22,
+        147
+      ],
+      "issues": [],
+      "context_chars": 13833,
+      "seconds": 35.6
+    },
+    "native_resource_text_and_cells_preserved_exactly": true,
+    "fixture_windows_match_native_page_text": true,
+    "limitation": "Two resource table pages located in this public report; not evidence of recall on hidden reports or successful field extraction."
+  },
+  "newmont_real_models": [
+    {
+      "id": "newmont-tanami",
+      "models": {
+        "extractor": "deepseek-v4-flash",
+        "critic": "qwen3.8-max"
+      },
+      "reasoning_effort": {
+        "extractor": "low",
+        "critic": "low"
+      },
+      "output_options": {
+        "extractor": {
+          "json_schema": false,
+          "enable_thinking": null
+        },
+        "critic": {
+          "json_schema": true,
+          "enable_thinking": true
+        }
+      },
+      "parser": "pdfplumber+mineru:4.0.11",
+      "selected_pages": [
+        22,
+        147
+      ],
+      "selection_scope": "automatic",
+      "status": "abstain",
+      "rounds": 3,
+      "accepted_rows": 0,
+      "critic_scores": [
+        9,
+        9,
+        9
+      ],
+      "rule_issues": [
+        [
+          "row[0]:category_column_alignment_unverified",
+          "row[1]:category_column_alignment_unverified",
+          "row[2]:category_column_alignment_unverified",
+          "row[3]:category_column_alignment_unverified",
+          "row[4]:category_column_alignment_unverified",
+          "row[4]:unverified_identity:basis",
+          "row[5]:category_column_alignment_unverified",
+          "row[5]:unverified_identity:basis",
+          "row[6]:category_column_alignment_unverified",
+          "row[7]:category_column_alignment_unverified",
+          "row[8]:category_column_alignment_unverified",
+          "row[9]:category_column_alignment_unverified",
+          "row[10]:category_column_alignment_unverified",
+          "row[10]:unverified_identity:basis",
+          "row[11]:category_column_alignment_unverified",
+          "row[11]:unverified_identity:basis",
+          "page[22]:scope_completeness_unverified",
+          "page[147]:scope_completeness_unverified"
+        ],
+        [
+          "row[0]:category_column_alignment_unverified",
+          "row[1]:category_column_alignment_unverified",
+          "row[2]:category_column_alignment_unverified",
+          "row[3]:category_column_alignment_unverified",
+          "row[4]:category_column_alignment_unverified",
+          "row[5]:category_column_alignment_unverified",
+          "row[6]:category_column_alignment_unverified",
+          "row[7]:category_column_alignment_unverified",
+          "row[8]:category_column_alignment_unverified",
+          "row[9]:category_column_alignment_unverified",
+          "row[10]:category_column_alignment_unverified",
+          "row[11]:category_column_alignment_unverified",
+          "page[22]:scope_completeness_unverified",
+          "page[147]:scope_completeness_unverified"
+        ],
+        [
+          "row[0]:category_column_alignment_unverified",
+          "row[1]:category_column_alignment_unverified",
+          "row[2]:category_column_alignment_unverified",
+          "row[3]:category_column_alignment_unverified",
+          "row[4]:category_column_alignment_unverified",
+          "row[4]:unverified_identity:basis",
+          "row[5]:category_column_alignment_unverified",
+          "row[5]:unverified_identity:basis",
+          "row[6]:category_column_alignment_unverified",
+          "row[7]:category_column_alignment_unverified",
+          "row[8]:category_column_alignment_unverified",
+          "row[9]:category_column_alignment_unverified",
+          "row[10]:category_column_alignment_unverified",
+          "row[10]:unverified_identity:basis",
+          "row[11]:category_column_alignment_unverified",
+          "row[11]:unverified_identity:basis",
+          "page[22]:scope_completeness_unverified",
+          "page[147]:scope_completeness_unverified"
+        ]
+      ],
+      "errors": [
+        null,
+        null,
+        null
+      ],
+      "reasons": [
+        "page[147]:scope_completeness_unverified",
+        "page[22]:scope_completeness_unverified",
+        "row[0]:category_column_alignment_unverified",
+        "row[10]:category_column_alignment_unverified",
+        "row[10]:unverified_identity:basis",
+        "row[11]:category_column_alignment_unverified",
+        "row[11]:unverified_identity:basis",
+        "row[1]:category_column_alignment_unverified",
+        "row[2]:category_column_alignment_unverified",
+        "row[3]:category_column_alignment_unverified",
+        "row[4]:category_column_alignment_unverified",
+        "row[4]:unverified_identity:basis",
+        "row[5]:category_column_alignment_unverified",
+        "row[5]:unverified_identity:basis",
+        "row[6]:category_column_alignment_unverified",
+        "row[7]:category_column_alignment_unverified",
+        "row[8]:category_column_alignment_unverified",
+        "row[9]:category_column_alignment_unverified"
+      ],
+      "seconds": 283.0,
+      "metrics": {
+        "status": "abstain",
+        "tolerance": 0.05,
+        "field_accuracy_all": 0.0,
+        "accepted_field_accuracy": null,
+        "coverage": 0.0,
+        "correct_fields": 0,
+        "total_fields": 36,
+        "missing_rows": 12,
+        "unexpected_rows": 0,
+        "wrong_candidate_detected": true,
+        "wrong_candidate_rejected": true,
+        "valid_candidate_attempts": 3,
+        "last_valid_candidate_round": 3,
+        "any_wrong_candidate_detected": true,
+        "wrong_candidate_revised": false,
+        "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+      },
+      "truth_scope": [
+        22,
+        147
+      ]
+    }
+  ],
+  "mixed_truth_mapping": {
+    "template": "examples/mixed-commodity.mapping.json",
+    "api_control": {
+      "correct_fields": 6,
+      "total_fields": 6,
+      "coverage": 1.0
+    },
+    "cli_control": {
+      "correct_fields": 6,
+      "total_fields": 6,
+      "coverage": 1.0
+    },
+    "note": "Synthetic conformance controls, not LLM extraction accuracy. Explicit assessor configuration only; no predicted units, unit conversion or numeric answer injection."
+  },
+  "checks": {
+    "pytest_passed": 138,
+    "ruff_lint": "passed",
+    "ruff_format": "passed",
+    "compose_config": "passed",
+    "p0_tests_passed": 24
+  },
+  "remaining": [
+    "Newmont complex parallel/merged cells cannot currently be verified by native category binding and row inventory; all three real Qwen scores of 9 were vetoed, final abstain, accepted coverage 0%."
+  ]
+}

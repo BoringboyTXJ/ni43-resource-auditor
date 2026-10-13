@@ -89,6 +89,19 @@
 
 行字段映射保留顶层标准字段 `schema_version`、`document_id`、`source`。自定义哈希字段可显式配置 `"document_id_key": "metadata.pdf_sha256"`；它与已有 `document_id` 冲突时拒绝映射。提供了文档哈希就必须核验一致，映射不能绕过这项检查。
 
+混合 Au/Cu 的答案若没有逐行单位，可以在映射中显式声明各矿种的单位；`fields` 必须包含评审方实际的 `commodity` 字段映射：
+
+```json
+{
+  "unit_defaults_by_commodity": {
+    "Au": {"grade_unit": "g/t", "contained_unit": "oz"},
+    "Cu": {"grade_unit": "%", "contained_unit": "t"}
+  }
+}
+```
+
+这是映射文件中的一个配置项，完整模板见 [mixed-commodity.mapping.json](examples/mixed-commodity.mapping.json)。字段名与哈希路径须按实际答案修改。优先级为 **映射后的逐行字段 > 各矿种单位默认值 > 全局 defaults**。各矿种配置只允许 `grade_unit` / `contained_unit`，不能注入数值答案；支持 Au、Cu、额外的 Li2O。未声明的单位仍报错，不读取模型预测补齐，也不按数字大小猜测或换算。评审方须确认声明的单位与答案数值一致，例如 `contained_metal` 已为 oz，而不是尚未乘 1000 的 koz。
+
 ## 字段级评分与拒答
 
 **评分前必须对齐抽取与 truth 的范围：核对 `selected_pages`，以及 truth 覆盖的表号、basis 和 cutoff 集合。** 若 truth 只标一张表，就指定对应资源页并核对其范围；多表同页时应补齐该范围的独立标注。整份报告自动抽出的多个表不能对单表 truth 评分后当成全报告成绩。额外行仍按下述协议扣分，不用只统计匹配行的方式掩盖范围差异。

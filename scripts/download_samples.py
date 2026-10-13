@@ -1,4 +1,4 @@
-"""Fetch publisher originals with bounded size and pinned SHA-256; no API keys."""
+"""Fetch public reports with bounded size and pinned SHA-256; no API keys."""
 
 import hashlib
 import json

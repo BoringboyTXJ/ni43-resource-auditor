@@ -125,6 +125,7 @@ def read_pdf(data: bytes, filename: str, settings, pages: str = "") -> Document:
                 selected = sorted(set(resource_pages(texts, len(pdf.pages))) | set(opaque_pages))
             parser = "pdfplumber"
             parser_notes = []
+            mineru_pages = set()
             sample = " ".join(texts.get(i, "") for i in range(1, 11))
             chinese = len(re.findall(r"[\u4e00-\u9fff]", sample)) >= 20
             no_text = not any(normalized(texts.get(i, "")) for i in selected)
@@ -135,6 +136,9 @@ def read_pdf(data: bytes, filename: str, settings, pages: str = "") -> Document:
             if prefer_mineru:
                 if settings.mineru_python:
                     requested = sorted(set(selected) | set(range(1, min(10, len(pdf.pages)) + 1)))
+                    mixed_ocr = settings.pdf_parser != "mineru" and not chinese and not no_text
+                    if mixed_ocr:
+                        requested = sorted(set(requested) & set(opaque_pages))
                     if not selected and len(pdf.pages) <= settings.max_selected_pages:
                         requested = list(range(1, len(pdf.pages) + 1))
                     if (not selected and len(pdf.pages) > settings.max_selected_pages) or len(
@@ -148,8 +152,9 @@ def read_pdf(data: bytes, filename: str, settings, pages: str = "") -> Document:
                             parsed, version = parse_mineru(data, settings, requested)
                             if not set(requested).issubset(parsed):
                                 raise ValueError("mineru_missing_requested_pages")
-                            texts.update(parsed)
-                            parser = "mineru:" + version
+                            texts.update({i: parsed[i] for i in requested})
+                            mineru_pages = set(requested)
+                            parser = ("pdfplumber+mineru:" if mixed_ocr else "mineru:") + version
                             if not pages:
                                 selected = resource_pages(texts, len(pdf.pages))
                             needs_ocr = {
@@ -189,7 +194,7 @@ def read_pdf(data: bytes, filename: str, settings, pages: str = "") -> Document:
             for i in selected:
                 text = texts[i]
                 # Original page text remains authoritative; tables are only a second view.
-                tables = pdf.pages[i - 1].extract_tables() if parser == "pdfplumber" else []
+                tables = pdf.pages[i - 1].extract_tables() if i not in mineru_pages else []
                 source_tables[i] = tables
                 table_view = "\n".join(
                     " | ".join(c or "" for c in row) for table in tables for row in table

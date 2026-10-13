@@ -102,6 +102,8 @@ docker compose up --build -d
 
 下载结果 JSON 后，在网页第二步分别上传结果和评审方 ground truth。评分路径不会调用模型或追加演化记录。若 JSON 字段命名不同，按 [DATA_NOTES.md](DATA_NOTES.md) 显式填写映射；不要先把答案放进提示词。
 
+混合 Au/Cu 且答案省略逐行单位时，可参考 [混合矿种映射模板](examples/mixed-commodity.mapping.json)，按实际字段名和数值口径修改，再粘贴到网页的映射区域。`unit_defaults_by_commodity` 显式声明各矿种单位，已有逐行单位优先；未知单位仍报错。CLI 对应 `evaluate ... --mapping examples/mixed-commodity.mapping.json`。
+
 CLI 同样支持新文件：
 
 ```bash
@@ -134,9 +136,12 @@ uv run --frozen python scripts/run_public_eval.py
 
 ```bash
 uv run --frozen python scripts/run_public_eval.py --automatic --case barrick-reko-diq --case kinross-great-bear
+uv run --frozen python scripts/run_public_eval.py --automatic --case newmont-tanami
 ```
 
 默认保存到 `artifacts/automatic/`，可用 `--output-dir` 指定目录。输出包含自动选择页、每轮规则/模型失败和状态，以及逐角色的结构化输出/思考设置。Barrick 和 Kinross 有单独的 automatic truth，分别覆盖 PDF 19/184 页的 20 行和 9/154/155/156/184 页的 32 行；只在自动选择页与标注范围完全相同时计分。其他范围不拿有限页 truth 评分。它们是单人按原页核对的公开开发标注，不是评审方答案，也不能证明全报告表格定位召回率。
+
+Newmont Tanami 2019 年 NI 43-101 报告来自 MineDocs 镜像，有图片封面。默认 Docker 已带 MinerU；非 Docker 运行需先按第 6 节配置本地 MinerU。自动参考覆盖 PDF 22/147 页、12 行，摘要表与正文表各保留 6 行，禁止相加。选页验证与实际模型抽取成绩分别记录在 [EVAL_RESULTS.md](EVAL_RESULTS.md)，选中资源页不等于表格已通过审核。
 
 得到某份真实的 `accepted` 结果后，可注入一个明显错误，验证独立 Qwen 审核和规则门槛：
 

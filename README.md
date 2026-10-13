@@ -49,13 +49,13 @@ Indicated/Inferred 在此指 **资源量**，不等同于 Proven/Probable **储�
 
 ## 中文及扫描 PDF
 
-中文文本或扫描件优先尝试 **MinerU 4.x 官方 SDK**；Docker 已装好独立解释器和 Basic ONNX 模型，支持 CPU OCR 与表格解析。保留原始 `page_idx` 转为一开始的 PDF 页码，不经过在线上传服务。英文原生文本继续使用 pdfplumber。混合文档逐页检查：有图像/绘图但缺少足够文本的选择页必须 OCR，其他页有文字不能覆盖该问题。自动定位会纳入这类无法判断内容的页面，可能保守地要求人工指定范围。失败时回退到原文本层，结果注明 `parser` / `parser_notes`；仍有无法核验的扫描页时弃答。真正没有文本也没有图形的空白页可排除并留痕。模式、资源边界与非 Docker 安装见 [RUN.md](RUN.md#6-中文或扫描-pdfmineru)。
+中文文本或扫描件优先尝试 **MinerU 4.x 官方 SDK**；Docker 已装好独立解释器和 Basic ONNX 模型，支持 CPU OCR 与表格解析。保留原始 `page_idx` 转为一开始的 PDF 页码，不经过在线上传服务。英文原生文本继续使用 pdfplumber。混合英文文档只对缺少文本的页面 OCR，保留其他页面的原生文本与表格单元格；解析器标为 `pdfplumber+mineru:<版本>`。有图像/绘图但缺少足够文本的选择页必须 OCR，其他页有文字不能覆盖该问题。自动定位会纳入这类无法判断内容的页面，可能保守地要求人工指定范围。失败时回退到原文本层，结果注明 `parser` / `parser_notes`；仍有无法核验的扫描页时弃答。真正没有文本也没有图形的空白页可排除并留痕。模式、资源边界与非 Docker 安装见 [RUN.md](RUN.md#6-中文或扫描-pdfmineru)。
 
 OCR 的证据是解析文本，两个模型并未直接审阅原始页面图像。版面错位或一致的 OCR 错误仍可能漏检；中文报告类别若没有明确的 Indicated/Inferred 对照，也不能套用中国其他资源分类。当前没有中文真实报告准确率结论。
 
 ## 评估与已知限制
 
-公开开发集包括 Barrick Reko Diq、Kinross Great Bear 和额外的 Pilbara JORC 样本。下载地址、SHA-256、限定页码及 17 条手工核对的数值记录在 `examples/`。原 PDF 不入 Git。它们是开发参考数据，未由发行方提供 ground truth，不能代替未知报告的独立评测。
+公开开发集包括 Barrick Reko Diq、Kinross Great Bear、Newmont Tanami 和额外的 Pilbara JORC 样本。下载地址、SHA-256、限定页码及 23 条手工核对的数值记录在 `examples/`；默认自动范围有另行标注。Newmont 的选页与抽取结果分别报告，不将选页成功视为抽取成功。原 PDF 不入 Git。它们是开发参考数据，未由发行方提供 ground truth，不能代替未知报告的独立评测。
 
 测试与真实模型结果记录在 [EVAL_RESULTS.md](EVAL_RESULTS.md)。拒绝所有结果会得到零覆盖率和零全量准确率，不能伪装为满分。复跑的接受率提高也不等于准确率提高，必须继续用独立 truth 评分。
 

@@ -1,0 +1,170 @@
+{
+  "schema_version": "1.0",
+  "document_id": "8d3e5876dc8c9c0c75967dcdba8b543d4eb740b48295140d2a078601dc928c19",
+  "source": {
+    "url": "https://minedocs.com/20/Tanami-TR-12312018.pdf",
+    "publisher": "Newmont",
+    "host": "MineDocs mirror",
+    "pdf_pages": [
+      22,
+      147
+    ],
+    "printed_pages": [
+      "11",
+      "136"
+    ],
+    "tables": [
+      "Table 1-3",
+      "Table 14-5"
+    ],
+    "effective_date": "2018-12-31",
+    "annotation_method": "Manual transcription checked against rendered source pages; one reviewer, not publisher-provided ground truth.",
+    "scope": "Indicated and Inferred only; 100% basis, exclusive of reserves. kt to Mt and koz to oz. Summary/detail tables and totals/subgroups overlap; do not sum. Cutoff is not a row-matching constraint; the notes disclose method-specific economic assumptions."
+  },
+  "rows": [
+    {
+      "table": "Table 1-3",
+      "effective_date": "2018-12-31",
+      "basis": "Tanami UG",
+      "category": "Indicated",
+      "commodity": "Au",
+      "ore_mt": 3.8,
+      "grade": 4.73,
+      "grade_unit": "g/t",
+      "contained_metal": 570000,
+      "contained_unit": "oz"
+    },
+    {
+      "table": "Table 1-3",
+      "effective_date": "2018-12-31",
+      "basis": "Tanami OP",
+      "category": "Indicated",
+      "commodity": "Au",
+      "ore_mt": 4.2,
+      "grade": 2.21,
+      "grade_unit": "g/t",
+      "contained_metal": 300000,
+      "contained_unit": "oz"
+    },
+    {
+      "table": "Table 1-3",
+      "effective_date": "2018-12-31",
+      "basis": "Total UG + OP",
+      "category": "Indicated",
+      "commodity": "Au",
+      "ore_mt": 8.0,
+      "grade": 3.4,
+      "grade_unit": "g/t",
+      "contained_metal": 870000,
+      "contained_unit": "oz"
+    },
+    {
+      "table": "Table 1-3",
+      "effective_date": "2018-12-31",
+      "basis": "Tanami UG",
+      "category": "Inferred",
+      "commodity": "Au",
+      "ore_mt": 6.3,
+      "grade": 5.67,
+      "grade_unit": "g/t",
+      "contained_metal": 1140000,
+      "contained_unit": "oz"
+    },
+    {
+      "table": "Table 1-3",
+      "effective_date": "2018-12-31",
+      "basis": "Tanami OP",
+      "category": "Inferred",
+      "commodity": "Au",
+      "ore_mt": 3.9,
+      "grade": 1.88,
+      "grade_unit": "g/t",
+      "contained_metal": 230000,
+      "contained_unit": "oz"
+    },
+    {
+      "table": "Table 1-3",
+      "effective_date": "2018-12-31",
+      "basis": "Total UG + OP",
+      "category": "Inferred",
+      "commodity": "Au",
+      "ore_mt": 10.2,
+      "grade": 4.22,
+      "grade_unit": "g/t",
+      "contained_metal": 1370000,
+      "contained_unit": "oz"
+    },
+    {
+      "table": "Table 14-5",
+      "effective_date": "2018-12-31",
+      "basis": "Tanami UG",
+      "category": "Indicated",
+      "commodity": "Au",
+      "ore_mt": 3.8,
+      "grade": 4.73,
+      "grade_unit": "g/t",
+      "contained_metal": 570000,
+      "contained_unit": "oz"
+    },
+    {
+      "table": "Table 14-5",
+      "effective_date": "2018-12-31",
+      "basis": "Tanami OP",
+      "category": "Indicated",
+      "commodity": "Au",
+      "ore_mt": 4.2,
+      "grade": 2.21,
+      "grade_unit": "g/t",
+      "contained_metal": 300000,
+      "contained_unit": "oz"
+    },
+    {
+      "table": "Table 14-5",
+      "effective_date": "2018-12-31",
+      "basis": "Total UG + OP",
+      "category": "Indicated",
+      "commodity": "Au",
+      "ore_mt": 8.0,
+      "grade": 3.4,
+      "grade_unit": "g/t",
+      "contained_metal": 870000,
+      "contained_unit": "oz"
+    },
+    {
+      "table": "Table 14-5",
+      "effective_date": "2018-12-31",
+      "basis": "Tanami UG",
+      "category": "Inferred",
+      "commodity": "Au",
+      "ore_mt": 6.3,
+      "grade": 5.67,
+      "grade_unit": "g/t",
+      "contained_metal": 1140000,
+      "contained_unit": "oz"
+    },
+    {
+      "table": "Table 14-5",
+      "effective_date": "2018-12-31",
+      "basis": "Tanami OP",
+      "category": "Inferred",
+      "commodity": "Au",
+      "ore_mt": 3.9,
+      "grade": 1.88,
+      "grade_unit": "g/t",
+      "contained_metal": 230000,
+      "contained_unit": "oz"
+    },
+    {
+      "table": "Table 14-5",
+      "effective_date": "2018-12-31",
+      "basis": "Total UG + OP",
+      "category": "Inferred",
+      "commodity": "Au",
+      "ore_mt": 10.2,
+      "grade": 4.22,
+      "grade_unit": "g/t",
+      "contained_metal": 1370000,
+      "contained_unit": "oz"
+    }
+  ]
+}
