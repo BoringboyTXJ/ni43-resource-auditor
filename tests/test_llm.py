@@ -91,6 +91,32 @@ def test_streamed_content_is_assembled_without_reasoning_or_usage(monkeypatch):
     assert requests[0].get_header("User-agent") == "ni43-resource-auditor/0.1"
 
 
+def test_extractor_has_budget_for_literal_html_evidence_and_critic_stays_bounded(monkeypatch):
+    instance = client()
+    requests = []
+    raw = json.dumps(
+        {
+            "choices": [
+                {
+                    "finish_reason": "stop",
+                    "message": {
+                        "content": '{"score":9,"approved":true,"complete":true,"issues":[]}'
+                    },
+                }
+            ]
+        }
+    ).encode()
+
+    def respond(request, **kwargs):
+        requests.append(json.loads(request.data))
+        return io.BytesIO(raw)
+
+    monkeypatch.setattr(instance.opener, "open", respond)
+    instance.complete("extractor", "test", {}, Critique)
+    instance.complete("critic", "test", {}, Critique)
+    assert [r["max_tokens"] for r in requests] == [32768, 6000]
+
+
 def test_stream_ending_without_completion_is_not_accepted(monkeypatch):
     instance = client()
     raw = b'data: {"choices":[{"delta":{"content":"{}"}}]}\n\ndata: [DONE]\n\n'

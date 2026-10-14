@@ -1,0 +1,162 @@
+{
+  "schema_version": "1.0",
+  "document_id": "86e630e479590662e522617f975671ac2f84bfb890d93d61abae4832d8e91e89",
+  "source": {
+    "url": "https://announcements.asx.com.au/asxpdf/20250611/pdf/06kmc3l7r1bjsm.pdf",
+    "pdf_pages": [
+      2,
+      5
+    ],
+    "table": "Table 1 and Table 2",
+    "effective_date": "2025-03-31",
+    "standard": "JORC 2012",
+    "annotation_method": "Table 1 annotations reused unchanged; Table 2 numbers independently transcribed from the rendered original PDF page 5 on 2026-10-14, not from model predictions.",
+    "scope": "Complete automatic scope on PDF pages 2 and 5. Table 1 aggregates and Table 2 area/total estimates remain distinct; do not sum overlapping estimates.",
+    "rounding": "Contained oxide is published in Mt. Stockpile 0.1 Mt must remain 100000 t despite rounded ore/grade arithmetic. This is Li2O, not elemental Li."
+  },
+  "rows": [
+    {
+      "basis": "in-situ",
+      "category": "Indicated",
+      "commodity": "Li2O",
+      "ore_mt": 349,
+      "grade": 1.29,
+      "grade_unit": "%",
+      "contained_metal": 4500000,
+      "contained_unit": "t",
+      "table": "Table 1"
+    },
+    {
+      "basis": "in-situ",
+      "category": "Inferred",
+      "commodity": "Li2O",
+      "ore_mt": 70,
+      "grade": 1.25,
+      "grade_unit": "%",
+      "contained_metal": 900000,
+      "contained_unit": "t",
+      "table": "Table 1"
+    },
+    {
+      "basis": "stockpiles",
+      "category": "Indicated",
+      "commodity": "Li2O",
+      "ore_mt": 7,
+      "grade": 0.93,
+      "grade_unit": "%",
+      "contained_metal": 100000,
+      "contained_unit": "t",
+      "table": "Table 1"
+    },
+    {
+      "basis": "total",
+      "category": "Indicated",
+      "commodity": "Li2O",
+      "ore_mt": 356,
+      "grade": 1.29,
+      "grade_unit": "%",
+      "contained_metal": 4600000,
+      "contained_unit": "t",
+      "table": "Table 1"
+    },
+    {
+      "basis": "total",
+      "category": "Inferred",
+      "commodity": "Li2O",
+      "ore_mt": 70,
+      "grade": 1.25,
+      "grade_unit": "%",
+      "contained_metal": 900000,
+      "contained_unit": "t",
+      "table": "Table 1"
+    },
+    {
+      "table": "Table 2",
+      "basis": "South",
+      "category": "Indicated",
+      "commodity": "Li2O",
+      "ore_mt": 82,
+      "grade": 1.06,
+      "grade_unit": "%",
+      "contained_metal": 900000,
+      "contained_unit": "t"
+    },
+    {
+      "table": "Table 2",
+      "basis": "South",
+      "category": "Inferred",
+      "commodity": "Li2O",
+      "ore_mt": 23,
+      "grade": 1.06,
+      "grade_unit": "%",
+      "contained_metal": 200000,
+      "contained_unit": "t"
+    },
+    {
+      "table": "Table 2",
+      "basis": "Central",
+      "category": "Indicated",
+      "commodity": "Li2O",
+      "ore_mt": 255,
+      "grade": 1.37,
+      "grade_unit": "%",
+      "contained_metal": 3500000,
+      "contained_unit": "t"
+    },
+    {
+      "table": "Table 2",
+      "basis": "Central",
+      "category": "Inferred",
+      "commodity": "Li2O",
+      "ore_mt": 44,
+      "grade": 1.36,
+      "grade_unit": "%",
+      "contained_metal": 600000,
+      "contained_unit": "t"
+    },
+    {
+      "table": "Table 2",
+      "basis": "North",
+      "category": "Indicated",
+      "commodity": "Li2O",
+      "ore_mt": 12,
+      "grade": 1.26,
+      "grade_unit": "%",
+      "contained_metal": 100000,
+      "contained_unit": "t"
+    },
+    {
+      "table": "Table 2",
+      "basis": "North",
+      "category": "Inferred",
+      "commodity": "Li2O",
+      "ore_mt": 3,
+      "grade": 1.14,
+      "grade_unit": "%",
+      "contained_metal": 0,
+      "contained_unit": "t"
+    },
+    {
+      "table": "Table 2",
+      "basis": "total",
+      "category": "Indicated",
+      "commodity": "Li2O",
+      "ore_mt": 349,
+      "grade": 1.29,
+      "grade_unit": "%",
+      "contained_metal": 4500000,
+      "contained_unit": "t"
+    },
+    {
+      "table": "Table 2",
+      "basis": "total",
+      "category": "Inferred",
+      "commodity": "Li2O",
+      "ore_mt": 70,
+      "grade": 1.25,
+      "grade_unit": "%",
+      "contained_metal": 900000,
+      "contained_unit": "t"
+    }
+  ]
+}

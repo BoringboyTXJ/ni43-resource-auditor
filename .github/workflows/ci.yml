@@ -22,6 +22,9 @@ jobs:
       - name: Verify bundled Chinese scan OCR without network or model credentials
         run: |
           docker run --rm --network none --mount type=bind,source="$PWD/scripts/check_bundled_ocr.py",target=/app/check_bundled_ocr.py,readonly resource-auditor:ci python /app/check_bundled_ocr.py
+      - name: Verify bundled CPU vision runtime without network or model credentials
+        run: |
+          docker run --rm --network none -e SMOKE_MINERU_TIER=advanced --mount type=bind,source="$PWD/scripts/check_bundled_ocr.py",target=/app/check_bundled_ocr.py,readonly resource-auditor:ci python /app/check_bundled_ocr.py
       - name: Smoke-test the image and persistent volume
         run: |
           docker run -d --name audit-ci -p 127.0.0.1:8000:8000 --mount type=volume,source=audit-ci-data,target=/app/data resource-auditor:ci

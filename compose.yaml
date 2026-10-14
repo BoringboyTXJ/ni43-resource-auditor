@@ -24,14 +24,15 @@ services:
       MAX_PDF_MB: ${MAX_PDF_MB:-40}
       MAX_CONTEXT_CHARS: ${MAX_CONTEXT_CHARS:-100000}
       MAX_SELECTED_PAGES: ${MAX_SELECTED_PAGES:-24}
-      PDF_PARSER: ${PDF_PARSER:-auto}
+      PDF_PARSER: ${PDF_PARSER:-mineru}
       # The interpreter and models belong to the image, not the host machine.
       MINERU_PYTHON: /opt/mineru/bin/python
       MINERU_HOME: /opt/mineru-home
       MINERU_MODEL_SOURCE: local
       MINERU_MODEL_SMALL_BACKEND: onnx
+      MINERU_MODEL_VLM_ENGINE: llama-cpp
       MINERU_TIER: ${MINERU_TIER:-basic}
-      MINERU_TIMEOUT_SECONDS: ${MINERU_TIMEOUT_SECONDS:-300}
+      MINERU_TIMEOUT_SECONDS: ${MINERU_TIMEOUT_SECONDS:-1800}
       EVOLUTION_LOG: /app/data/evolution.jsonl
     volumes:
       - audit_data:/app/data

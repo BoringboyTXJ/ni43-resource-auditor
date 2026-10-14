@@ -53,10 +53,10 @@ class Settings:
     max_pdf_mb: int = 40
     max_context_chars: int = 100000
     max_selected_pages: int = 24
-    pdf_parser: str = "auto"
+    pdf_parser: str = "mineru"
     mineru_python: str = ""
     mineru_tier: str = "basic"
-    mineru_timeout: int = 300
+    mineru_timeout: int = 1800
     stream: bool = True
 
     @classmethod
@@ -90,10 +90,10 @@ class Settings:
             max_pdf_mb=int(os.getenv("MAX_PDF_MB", "40")),
             max_context_chars=int(os.getenv("MAX_CONTEXT_CHARS", "100000")),
             max_selected_pages=int(os.getenv("MAX_SELECTED_PAGES", "24")),
-            pdf_parser=os.getenv("PDF_PARSER", "auto").strip().lower(),
+            pdf_parser=os.getenv("PDF_PARSER", "mineru").strip().lower(),
             mineru_python=os.getenv("MINERU_PYTHON", "").strip(),
             mineru_tier=os.getenv("MINERU_TIER", "basic").strip().lower(),
-            mineru_timeout=int(os.getenv("MINERU_TIMEOUT_SECONDS", "300")),
+            mineru_timeout=int(os.getenv("MINERU_TIMEOUT_SECONDS", "1800")),
             stream=os.getenv("LLM_STREAM", "true").lower() == "true",
         )
 
@@ -106,8 +106,8 @@ class Settings:
             raise ValueError("Timeout must be 1..600 seconds and PDF limit 1..100 MB")
         if not 1000 <= self.max_context_chars <= 500000 or not 1 <= self.max_selected_pages <= 100:
             raise ValueError("Context/page limits are out of range")
-        if self.pdf_parser not in {"auto", "pdfplumber", "mineru"}:
-            raise ValueError("PDF_PARSER must be auto, pdfplumber, or mineru")
+        if self.pdf_parser not in {"auto", "mineru"}:
+            raise ValueError("PDF_PARSER must be mineru (auto is a legacy alias for MinerU)")
         if self.mineru_tier not in {"flash", "basic", "standard", "advanced"}:
             raise ValueError("Invalid MinerU tier")
         if not 1 <= self.mineru_timeout <= 1800:

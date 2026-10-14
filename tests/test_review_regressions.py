@@ -148,31 +148,6 @@ def test_resource_header_reserve_qualifier_is_not_a_reserve_table(
 def test_selected_scan_page_must_trigger_ocr_or_abstention(
     settings, candidate, document, monkeypatch
 ):
-    class Page:
-        def __init__(self, text, scanned=False):
-            self.text = text
-            self.images = [{"object_type": "image"}] if scanned else []
-
-        def extract_text(self, **kwargs):
-            return self.text
-
-        def extract_tables(self):
-            return []
-
-        def close(self):
-            pass
-
-    class PDF:
-        def __init__(self):
-            self.pages = [Page(document.context), Page("", scanned=True)]
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args):
-            pass
-
-    monkeypatch.setattr(pdf_module.pdfplumber, "open", lambda *a, **k: PDF())
     calls = []
 
     def ocr(data, config, selected):

@@ -56,6 +56,12 @@ def field_units(text):
     return set()
 
 
+def plain_subscripts(text):
+    # Semantic headers/identity only; never rewrite numeric cells or evidence quotes.
+    text = re.sub(r"_\{(\d+)\}|_(\d+)", lambda match: match[1] or match[2], text)
+    return re.sub(r"\\(?:mathrm|text|mathbf)\{([A-Za-z]+\d*[A-Za-z\d]*)\}", r"\1", text)
+
+
 def text_unit_check(row, page_text):
     header = normalized(row.evidence.header_quote)
     # Compact unit-only quotations still need the adjacent original column labels.
@@ -101,23 +107,35 @@ def table_columns(table):
         return None
     headers, body = cells[:first], cells[first:]
     width = max(map(len, cells))
-    labels = [" ".join(line[col] for line in headers if col < len(line)) for col in range(width)]
+    labels = [
+        plain_subscripts(" ".join(line[col] for line in headers if col < len(line)))
+        for col in range(width)
+    ]
     categories = [None] * width
     for line in headers:
         current = None
         for col, cell in enumerate(line):
-            if re.fullmatch(r"Measured\s*(?:and|&|\+)\s*Indicated", cell, re.I):
+            category_cell = re.sub(r"\s+(?:Mineral\s+)?Resources?$", "", cell, flags=re.I)
+            if re.fullmatch(r"Measured\s*(?:and|&|\+)\s*Indicated", category_cell, re.I):
                 current = "combined"
-            elif re.fullmatch(r"Measured|Indicated|Inferred", cell, re.I):
-                current = cell.casefold()
+            elif re.fullmatch(r"Measured|Indicated|Inferred", category_cell, re.I):
+                current = category_cell.casefold()
             if current:
                 categories[col] = current
     roles, current = [], None
     for label in labels:
-        if re.search(r"contained|ounces?", label, re.I):
+        supported = re.search(r"\bAu\b|\bGold\b|\bCu\b|\bCopper\b|\bLi2O\b", label, re.I)
+        oxides = re.findall(r"\b(?:[A-Z][a-z]?\d*){2,}\b", label)
+        if not supported and any(re.search(r"\d", oxide) for oxide in oxides):
+            roles.append("excluded")
+            current = None
+            continue
+        if re.search(r"contained|ounces?|\bmetal\b", label, re.I):
             current = "metal"
         elif re.search(r"tonn|\bore\b", label, re.I):
             current = "ore"
+        elif supported and field_units(label):
+            current = "metal"
         elif re.search(r"\bgrade\b|%|(?<![a-z])g\s*/\s*t", label, re.I):
             current = "grade"
         elif re.search(r"\b(?:Gold|Copper)\b", label, re.I):

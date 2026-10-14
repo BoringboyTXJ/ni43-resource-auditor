@@ -1,6 +1,26 @@
 # 验收记录
 
-开发环境：Windows、Python 3.11.9。记录更新于 2026-10-14。
+
+## 全部 PDF 改用 MinerU（2026-10-14）
+
+应用及锁定依赖移除 pdfplumber；所有 PDF 使用 MinerU **4.0.12** 的本地 auto 模式。默认 Docker 同时包含 Basic ONNX CPU 模型和官方注册表指定的 llama.cpp GGUF/mmproj 视觉模型。完整报告先用 Basic 解析，来源行结构无法核验的资源页再用 Advanced OCR 重解析；仅采用通过来源核验、保留原先明确行及其数量的结果，不拆粘连数字、不手改 rowspan。仍不清的页阻断接受。HTML、Markdown、LaTeX 化学下标和明确的其他氧化物列共用字段/类别校验；原数值和引文不改写。
+
+整份解析的内存分配失败曾在受限 Windows 环境中复现，默认改为八页窗口、单个渲染进程及限制嵌套数值线程。默认解析上限 1800 秒；真实 Barrick 342 页用时 656.1 秒、Kinross 243 页 471.0 秒、Pilbara 83 页 192.6 秒、Newmont 204 页 374.1 秒。耗时不是速度承诺。原始 SHA-256 对 manifest 核验，范围没有按公司或文件名分支。
+
+完整真实解析缓存进入 DeepSeek `deepseek-v4-flash` + Qwen `qwen3.8-max` 审核，关闭 few-shot；参考只在模型结束后加载。最终候选已对最终规则重新核验：
+
+| 文档 / 默认 PDF 页 | 状态 / 轮数 / Critic 分 | 接受行 | 数值字段 / 覆盖率 |
+| --- | --- | --- | --- |
+| Newmont / 22、147 | accepted / 1 / 9 | 12 | 36/36，100% |
+| Barrick / 19、184 | accepted / 2 / 7→9 | 20 | 60/60，100% |
+| Pilbara（额外 JORC）/ 2、5 | accepted / 1 / 10 | 13 | 39/39，100% |
+| Kinross / 9、154、155、156、184 | abstain / 0 模型轮 | 0 | 0/96，0% |
+
+**Kinross 未完整抽取通过。** Basic 在 155/184 页拼接类别和数字；Advanced 修复了 184 页，但 155 页将 OP/UG 分组划成 3/5 行，原始 PDF 为 4/4。原页已渲染核验；同一方法下重复 Inferred、数字不同的结构被通用规则标为未核验，不按已知答案重写。模型调用前弃答、标记人工审核并追加失败日志。改用同一库更高质量档位也不能保证未知表格正确。
+
+Revise Loop 已有候选、规则/批评反馈及原文窗口回传；本轮又明确传递上一轮完整审核 JSON（score、approved、complete、issues/notes）。Barrick 的真实 7→9 两轮过程验证了修订行为。首次 24K 输出预算曾产生截断，随后将 Extractor 预算提高到 32768（Critic 仍 6000），保留原失败。Pilbara 中间一次虽然接受 13 行，却把 Table2 的 Total 改成 in-situ，评分 **33/45、覆盖 11/13**；新增明确 Total 分组绑定与提示词后，原候选必拒。新调用通过 39/39，未修改独立 truth 来迎合预测。模型高分不能抵消任何规则失败。
+
+本地 Basic/Advanced 中文无文本层扫描表均实测；最新 Advanced CPU 路径通过，无外部解析服务或额外 API key。最终本地 **191 项测试通过**，Ruff lint/format、Compose 与 diff 检查通过；提交后的 Linux Docker 离线双档扫描/API/持久卷检查用于工程验证，不当作未知报告准确率。机器记录见 [mineru-validation.json](examples/mineru-validation.json)。下方结果保留为历史，不能用旧版 Kinross 32 行成绩代替当前的零覆盖。
 
 ## Newmont 自动选页与混合矿种答案映射（2026-10-14）
 

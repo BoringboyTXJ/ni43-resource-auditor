@@ -94,7 +94,7 @@ class ModelClient:
                 },
                 {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
             ],
-            "max_tokens": 24000 if role == "extractor" else 6000,
+            "max_tokens": 32768 if role == "extractor" else 6000,
             "stream": self.settings.stream,
         }
         headers = {

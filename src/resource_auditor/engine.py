@@ -55,8 +55,11 @@ the note is ambiguous or conflicts with a valid printed unit, leave the field un
 For the overall project aggregate, basis='total' even when the printed label includes the
 project name before 'Total'; preserve that literal label in row_quote. Keep deposit-specific
 totals separate by project/table/location identity; never merge distinct deposits or dates.
-Method-specific totals retain the source qualifier: 'Total UG' / 'Total OP' must not become
+Method-specific totals retain the source qualifier: 'Total UG', 'Total OP' and 'Total UG + OP' must not become
 basis='total'. Use literal source location labels rather than inventing a composite basis.
+An explicit unqualified Total location group keeps basis='total', even when the table's
+caption limits the entire table to in-situ resources. Do not replace that row's Total label
+with the table-wide in-situ qualifier; table ID already separates overlapping estimates.
 On revision, re-read the source and repair feedback; never simply raise confidence.
 source_quote_hints are literal source windows to help repair failed quotations. They do not
 approve any value. Repair every deterministic quote failure even if a critic calls it a false
@@ -168,6 +171,7 @@ def audit(
     feedback = []
     hints = []
     previous = None
+    previous_review = None
     for iteration in range(1, 4):
         attempt = Attempt(round=iteration)
         try:
@@ -177,6 +181,7 @@ def audit(
                 {
                     "source": document.context,
                     "previous": previous,
+                    "previous_review": previous_review,
                     "feedback": feedback,
                     "examples": examples,
                     "source_quote_hints": hints,
@@ -230,6 +235,7 @@ def audit(
             if not critique.approved:
                 feedback.append("critic_did_not_approve")
             previous = candidate.model_dump()
+            previous_review = critique.model_dump()
             hints = quote_hints(candidate, document)
         except ModelError as exc:
             attempt.error = str(exc)

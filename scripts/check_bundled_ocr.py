@@ -3,23 +3,16 @@
 import json
 import os
 import re
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
-import pdfplumber
-from PIL import Image, ImageDraw, ImageFont
 
-from resource_auditor.config import RoleConfig, Settings
-from resource_auditor.pdf import read_pdf
+def make_fixture(source, font_path):
+    from docvortex.document.pdf import PDFDocument
+    from PIL import Image, ImageDraw, ImageFont
 
-
-def main():
-    font_path = (
-        sys.argv[1]
-        if len(sys.argv) > 1
-        else "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"
-    )
     font = ImageFont.truetype(font_path, 38)
     image = Image.new("RGB", (1800, 1300), "white")
     draw = ImageDraw.Draw(image)
@@ -40,21 +33,38 @@ def main():
         draw.line((x, 390, x, 750), fill="black", width=3)
     for y in [390, 510, 630, 750]:
         draw.line((100, y, 1700, y), fill="black", width=3)
+    image.save(source, "PDF", resolution=150.0)
+    with PDFDocument(Path(source).read_bytes()) as pdf:
+        assert pdf.page_char_count(0) == 0, "Fixture must have no text layer"
+
+
+def main():
+    from resource_auditor.config import RoleConfig, Settings
+    from resource_auditor.pdf import read_pdf
+
+    font_path = (
+        sys.argv[1]
+        if len(sys.argv) > 1
+        else "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"
+    )
     with tempfile.TemporaryDirectory(prefix="auditor-ocr-check-") as directory:
         source = Path(directory) / "chinese-scan.pdf"
-        image.save(source, "PDF", resolution=150.0)
+        # Image creation uses Pillow already present in the isolated MinerU runtime.
+        subprocess.run(
+            [os.environ["MINERU_PYTHON"], __file__, "--make-fixture", str(source), font_path],
+            check=True,
+            timeout=60,
+        )
         data = source.read_bytes()
-        with pdfplumber.open(source) as pdf:
-            assert not pdf.pages[0].extract_text(), "Fixture must have no text layer"
         settings = Settings(
             RoleConfig("https://extractor.test/v1", "extractor", "synthetic"),
             RoleConfig("https://critic.test/v1", "critic", "synthetic"),
             mineru_python=os.environ["MINERU_PYTHON"],
-            mineru_tier="basic",
+            mineru_tier=os.getenv("SMOKE_MINERU_TIER", "basic"),
             mineru_timeout=600,
         )
         document = read_pdf(data, source.name, settings)
-        assert document.parser == "mineru:4.0.11", (document.parser, document.parser_notes)
+        assert document.parser == "mineru:4.0.12", (document.parser, document.parser_notes)
         assert not document.issues, document.issues
         assert document.selected_pages == [1], document.selected_pages
         text = document.pages[1]
@@ -67,7 +77,7 @@ def main():
             json.dumps(
                 {
                     "parser": document.parser,
-                    "tier": "basic",
+                    "tier": settings.mineru_tier,
                     "pages": document.selected_pages,
                     "chinese_text": True,
                     "resource_table": True,
@@ -78,4 +88,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) > 1 and sys.argv[1] == "--make-fixture":
+        make_fixture(*sys.argv[2:])
+    else:
+        main()

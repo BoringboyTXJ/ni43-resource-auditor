@@ -146,8 +146,8 @@ def test_notes_never_override_any_blocking_gate(settings, candidate, document, b
     assert len(result.attempts) == 3
 
 
-def test_parser_fallback_is_logged_even_when_original_text_passes(settings, candidate, document):
-    document.parser_notes = ["mineru_failed; using original PDF text layer"]
+def test_parser_diagnostic_note_is_logged_even_when_evidence_passes(settings, candidate, document):
+    document.parser_notes = ["synthetic_parser_diagnostic"]
     result = audit(document, settings, FakeModels([candidate]))
     assert result.status == "accepted"
     event = read_events(settings.evolution_log)[0]
@@ -198,6 +198,9 @@ def test_revision_resolution_becomes_cross_document_example(settings, candidate,
     result = audit(document, settings, client)
     assert result.status == "accepted" and len(result.attempts) == 2
     assert client.calls[2][1]["feedback"]
+    assert client.calls[2][1]["previous"] == bad.model_dump()
+    assert client.calls[2][1]["previous_review"] == client.critique.model_dump()
+    assert client.calls[0][1]["previous_review"] is None
     assert few_shots(settings.evolution_log, document.document_id) == []
     assert len(few_shots(settings.evolution_log, "different-hash")) == 1
     assert read_events(settings.evolution_log)[-1]["human_verified"] is False

@@ -7,9 +7,11 @@ from difflib import SequenceMatcher
 
 from .models import Candidate, ResourceRow
 from .pdf import NI_STANDARD_PATTERN, Document, normalized, tabular_numbers
+from .tables import table_views
 from .units import (
     is_number,
     mass_units,
+    plain_subscripts,
     same_number,
     table_columns,
     table_unit_check,
@@ -81,6 +83,7 @@ def vertical_category_supported(row, page_text):
 
 
 def commodity_labels(text):
+    text = plain_subscripts(text)
     return {
         commodity
         for commodity, pattern in (
@@ -104,7 +107,7 @@ def native_inventory(table):
     commodity = next(iter(commodities))
     parallel = len(set(categories) - {None}) > 1
     current_category = None
-    inventory, uncertain = [], False
+    inventory, uncertain, group_rows = [], False, {}
     for source_row in body:
         label = " ".join(
             cell for cell in source_row if not is_number(cell) and cell not in {"", "-", "–", "—"}
@@ -115,7 +118,16 @@ def native_inventory(table):
             }
             if found:
                 current_category = next(iter(found)) if len(found) == 1 else "combined"
-            elif re.search(r"\b(?:sub[- ]?total|total)\b", label, re.I):
+                if (
+                    len(found) > 1
+                    and found & {"indicated", "inferred"}
+                    and not (
+                        found == {"measured", "indicated"}
+                        and re.search(r"Measured\s*(?:and|&|\+)\s*Indicated", label, re.I)
+                    )
+                ):
+                    uncertain = True
+            elif re.search(r"\b(?:sub[- ]?total|total|combined)\b", label, re.I):
                 current_category = None
             targets = [current_category] if current_category in {"indicated", "inferred"} else []
         else:
@@ -137,6 +149,28 @@ def native_inventory(table):
                 elif numeric or any(cell not in {"-", "–", "—"} for cell in cells):
                     uncertain = True
             if len(values) == 3:
+                if not parallel:
+                    group = tuple(
+                        source_row[i]
+                        for i, role in enumerate(roles)
+                        if role is None
+                        and i < len(source_row)
+                        and source_row[i]
+                        and not re.search(
+                            r"classification|category|^\s*(?:Measured|Indicated|Inferred)\b",
+                            labels[i],
+                            re.I,
+                        )
+                    )
+                    conditions = tuple(
+                        source_row[i]
+                        for i, label in enumerate(labels)
+                        if i < len(source_row) and re.search(r"\bcog\b|cut[- ]?off", label, re.I)
+                    )
+                    key = (group, conditions, category)
+                    if group and key in group_rows and group_rows[key] != values:
+                        uncertain = True
+                    group_rows[key] = values
                 basis = (
                     " ".join(
                         source_row[i]
@@ -144,6 +178,8 @@ def native_inventory(table):
                         if role is None and i < len(source_row)
                     )
                     if parallel
+                    else " ".join(group)
+                    if any(re.search(r"\btotal\b", label, re.I) for label in group)
                     else ""
                 )
                 inventory.append(
@@ -156,8 +192,14 @@ def native_inventory(table):
 
 def text_inventory(text, native_rows=()):
     """Literal rows and unambiguous vertical category blocks, including MinerU Markdown."""
-    inventory, uncertain = [], bool(re.search(r"<(?:table|tr|td)\b", text, re.I))
-    lines = [normalized(line.replace("|", " ")) for line in text.splitlines()]
+    try:
+        _, text = table_views(text)
+        uncertain = False
+    except ValueError:
+        uncertain = True
+    inventory = []
+    raw_lines = text.splitlines()
+    lines = [normalized(line.replace("|", " ")) for line in raw_lines]
     value = r"(?:\d[\d,]*(?:\.\d+)?|[-–—])"
     explicit = (
         rf"(?:[A-Za-z][A-Za-z ()/–—-]*\s+)?(Indicated|Inferred)\s+({value}(?:\s+{value}){{2,}})"
@@ -173,11 +215,19 @@ def text_inventory(text, native_rows=()):
         }
         cells = re.findall(r"(?<![\w/.-])\d[\d,]*(?:\.\d+)?(?![\w/.-])", line)
         numeric_key = tuple(number(cell) for cell in cells)
+        if "|" in raw_lines[index]:
+            # Cell labels can contain cut-offs and chemical subscripts. They
+            # aren't data cells and must not defeat the native coverage counter.
+            numeric_key = tuple(
+                number(normalized(cell))
+                for cell in raw_lines[index].split("|")
+                if is_number(normalized(cell))
+            )
         if covered[numeric_key]:
             covered[numeric_key] -= 1
             if labels:
                 current = next(iter(labels)) if len(labels) == 1 else None
-            elif re.match(r"^(?:sub[- ]?total|total)\b", line, re.I):
+            elif re.search(r"\b(?:sub[- ]?total|total|combined)\b", line, re.I):
                 current = None
             continue
         if (len(labels) > 1 and re.search(r"Measured\s*(?:and|&|\+)\s*Indicated", line, re.I)) or (
@@ -304,7 +354,11 @@ def explicit_row_coverage(candidate, document):
 
 
 def identity_source_text(text):
-    return normalized(text).casefold().translate(str.maketrans({"–": "-", "—": "-", "−": "-"}))
+    return (
+        normalized(plain_subscripts(text))
+        .casefold()
+        .translate(str.maketrans({"–": "-", "—": "-", "−": "-"}))
+    )
 
 
 def source_dates(text):
@@ -365,9 +419,13 @@ def check_identity(row, document):
     basis = identity_text("basis", identity_source_text(row.basis))
     if basis == "total":
         quote = normalized(row.evidence.row_quote)
+        try:
+            _, basis_view = table_views(document.pages.get(row.evidence.page, ""))
+        except ValueError:
+            basis_view = document.pages.get(row.evidence.page, "")
         total_labels = [
             identity_text("basis", identity_source_text(line))
-            for line in document.pages.get(row.evidence.page, "").splitlines()
+            for line in basis_view.splitlines()
             if re.match(r"^total\b", normalized(line), re.I)
         ]
         only_qualified = any(

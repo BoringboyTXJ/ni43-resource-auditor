@@ -1,4 +1,4 @@
-# MinerU 4.0.11 isolated runtime; Linux x86_64 / Python 3.12.
+# MinerU 4.0.12 isolated runtime; Linux x86_64 / Python 3.12.
 # Exact tested dependency versions with official PyPI artifact SHA-256 hashes.
 # Application dependencies remain separately locked in requirements.txt.
 
@@ -467,21 +467,24 @@ cryptography==50.0.2 \
 distro==1.9.0 \
     --hash=sha256:2fa77c6fd8940f116ee1d6b94a2f90b13b5ea8d019b98bc8bafdcabcdd9bdbed \
     --hash=sha256:7bffd925d65168f85027d8da9af6bddab658135b840670a223589bc0c8ef02b2
-docvortex==0.5.15 \
-    --hash=sha256:02eda44dbf1a13e7aea5a832f2f408caee79990ca0ad63aecb460e8b1d5b667d \
-    --hash=sha256:31fabb9b2015543110cc0e1fc794d2c9f709ba518656591b0710583262513e0e \
-    --hash=sha256:324d11869e5c6669e546329e54c5cf864f9ae9b8a04198a292015d3a3795a076 \
-    --hash=sha256:6abd7e647b36ccf4f4034abf009d587ec862236a4ccba6324ab1dd179480f257 \
-    --hash=sha256:8d2cb7c020ad4724f99a409d382b73e7da8dc99713cb7a9cf4ceb698e0c77408 \
-    --hash=sha256:91af3e0d350568793a8e1ad27fa626d14cae6ef6652bb25c305bfe3798424ce5 \
-    --hash=sha256:c70fc7936c8d18335a64f97835aa7e393f5bc1a8d516a9cadb6db62650466cc6 \
-    --hash=sha256:ddcea6f75499b2219b301a14be6fad7c271f28839bf60c8137ebcee160fa99bc
+docvortex==0.5.16 \
+    --hash=sha256:20952ea883e54ee1e800dea08cdb370017f920b4b3d9543db863aa664ae815bb \
+    --hash=sha256:28780eba1d72627fa1aa60e21c4a378d156d919f676b83988d01106271637ee2 \
+    --hash=sha256:2b64f7f162d08d03d9f13ef4b662ae600f0f361fb88ac5a6947298da80946778 \
+    --hash=sha256:3f61b76ab9dd71b92fa2b38d4b2b51cf582a9f22b5f24f6792fdce2c047df728 \
+    --hash=sha256:4e7a3d31e72828f099f637cd04265dac7a76a4b076a2454c39d83753927730b9 \
+    --hash=sha256:7dd9bd682a7195dc27f66d82df518bf3ca72bba3a07279171f0c6b375186727c \
+    --hash=sha256:946f8903b7d197fca5ce52b1760b4a56e0ef2e496ce7b126d0d2ae33eb0dc585 \
+    --hash=sha256:bc1f7ab10aa63b0eeb8c8d005477427f07da78d9e2f95d385da0eb69f44e15d4
 et-xmlfile==2.0.0 \
     --hash=sha256:7a91720bc756843502c3b7504c77b8fe44217c85c537d85037f0f536151b2caa \
     --hash=sha256:dab3f4764309081ce75662649be815c4c9081e88f0837825f90fd28317d4da54
 fastapi==0.143.0 \
     --hash=sha256:1acffe48206a80917cf7dac21992b5c44b25384e8902bf745c1fd9dabcf6c51f \
     --hash=sha256:3e9395fd35276425b61b516a31fdd7c77fe2af83e41b4da22e30696fb1304c5d
+fastapi-offline==1.7.7 \
+    --hash=sha256:60c8399fd7d3e3b01510e14468709e3dea1a0e773ef920372d057392d736a1f9 \
+    --hash=sha256:aeeabe67dd40f867ab0fe64dd8de742949e36ba5f3ac6aeb055baef274ed91d0
 filelock==3.32.7 \
     --hash=sha256:37b8a3d9811b0f9aef7e5ec5c71bb320de52df51e6ca9bcd6f5ad81187660da7 \
     --hash=sha256:65ff0d0190ea42038b32bda4b77834fb05be2cad4c5b9b01aa4dfb3614536e52
@@ -1090,8 +1093,8 @@ mdurl==0.1.2 \
 metafile-render==0.3.0 \
     --hash=sha256:94144d7e6195711dc5c1a717e18a5328feaf7566479f159c732620cd48da6e87 \
     --hash=sha256:987b483a13b4b048f1d95ec5990f2d06ff3a92550d13b2e871dfd48836171e77
-mineru==4.0.11 \
-    --hash=sha256:1d4370f8fe342785daa7442e81c05c782b7cb467976dbc9314576f31edcf8a8a
+mineru==4.0.12 \
+    --hash=sha256:a3ff8582a4608eb1f4dde55800ac156d59b01ceabd2ab4002bdf8e86306b1eab
 mineru-llama-cpp==0.1.2 \
     --hash=sha256:0546f513fc2deb0a475e0867e0ce9aafd8e7d22196236bcd5bd72235f57bc77e \
     --hash=sha256:05c7ed365eddc404db85cd8090a04275b2f130a104ed342d600d990b88a0d86b \

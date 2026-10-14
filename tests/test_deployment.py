@@ -79,3 +79,4 @@ def test_compose_bundles_offline_cpu_ocr_by_default(tmp_path):
     assert configured["MINERU_HOME"] == "/opt/mineru-home"
     assert configured["MINERU_MODEL_SOURCE"] == "local"
     assert configured["MINERU_MODEL_SMALL_BACKEND"] == "onnx"
+    assert configured["MINERU_MODEL_VLM_ENGINE"] == "llama-cpp"

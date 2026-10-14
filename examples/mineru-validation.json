@@ -1,0 +1,222 @@
+{
+  "validation_date": "2026-10-14",
+  "baseline_commit": "391c98ce365f33f5990ba44f7aabee203620f45e",
+  "parser_runtime": "MinerU4.0.12 Basic ONNX CPU with local Advanced OCR reparse for unclear resource pages; no pdfplumber",
+  "model_runtime": "local llama-cpp MinerU2.5-Pro-2605-1.2B GGUF/mmproj",
+  "scope": "Original complete PDF uploads; cached parser outputs passed unchanged to actual two-model auditing. Independent references loaded after model roles finish.",
+  "cases": [
+    {
+      "id": "barrick-reko-diq",
+      "parser": "mineru:4.0.12",
+      "selected_pages": [
+        19,
+        184
+      ],
+      "models": {
+        "extractor": "deepseek-v4-flash",
+        "critic": "qwen3.8-max"
+      },
+      "status": "accepted",
+      "rounds": 2,
+      "accepted_rows": 20,
+      "critic_scores": [
+        7,
+        9
+      ],
+      "rule_issues": [
+        [
+          "row[8]:header_quote_not_in_source",
+          "row[8]:unsupported_quote_or_page",
+          "row[9]:header_quote_not_in_source",
+          "row[9]:unsupported_quote_or_page",
+          "row[18]:header_quote_not_in_source",
+          "row[18]:unsupported_quote_or_page",
+          "row[19]:header_quote_not_in_source",
+          "row[19]:unsupported_quote_or_page"
+        ],
+        []
+      ],
+      "errors": [
+        null,
+        null
+      ],
+      "reasons": [],
+      "parser_notes": [],
+      "metrics": {
+        "status": "accepted",
+        "tolerance": 0.05,
+        "field_accuracy_all": 1.0,
+        "accepted_field_accuracy": 1.0,
+        "coverage": 1.0,
+        "correct_fields": 60,
+        "total_fields": 60,
+        "missing_rows": 0,
+        "unexpected_rows": 0,
+        "wrong_candidate_detected": false,
+        "wrong_candidate_rejected": null,
+        "valid_candidate_attempts": 2,
+        "last_valid_candidate_round": 2,
+        "any_wrong_candidate_detected": false,
+        "wrong_candidate_revised": false,
+        "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+      },
+      "seconds": 279.4
+    },
+    {
+      "id": "kinross-great-bear",
+      "parser": "mineru:4.0.12",
+      "selected_pages": [
+        9,
+        154,
+        155,
+        156,
+        184
+      ],
+      "models": {
+        "extractor": "deepseek-v4-flash",
+        "critic": "qwen3.8-max"
+      },
+      "status": "abstain",
+      "rounds": 0,
+      "accepted_rows": 0,
+      "critic_scores": [],
+      "rule_issues": [],
+      "errors": [],
+      "reasons": [
+        "page[155]:scope_completeness_unverified"
+      ],
+      "parser_notes": [
+        "mineru_advanced_reparse: 184",
+        "mineru_resource_structure_still_unverified: 155"
+      ],
+      "metrics": {
+        "status": "abstain",
+        "tolerance": 0.05,
+        "field_accuracy_all": 0.0,
+        "accepted_field_accuracy": null,
+        "coverage": 0.0,
+        "correct_fields": 0,
+        "total_fields": 96,
+        "missing_rows": 32,
+        "unexpected_rows": 0,
+        "wrong_candidate_detected": false,
+        "wrong_candidate_rejected": null,
+        "valid_candidate_attempts": 0,
+        "last_valid_candidate_round": null,
+        "any_wrong_candidate_detected": false,
+        "wrong_candidate_revised": false,
+        "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+      },
+      "seconds": 0.0
+    },
+    {
+      "id": "pilbara-jorc",
+      "parser": "mineru:4.0.12",
+      "selected_pages": [
+        2,
+        5
+      ],
+      "models": {
+        "extractor": "deepseek-v4-flash",
+        "critic": "qwen3.8-max"
+      },
+      "status": "accepted",
+      "rounds": 1,
+      "accepted_rows": 13,
+      "critic_scores": [
+        10
+      ],
+      "rule_issues": [
+        []
+      ],
+      "errors": [
+        null
+      ],
+      "reasons": [],
+      "parser_notes": [
+        "mineru_advanced_reparse: 2,5"
+      ],
+      "metrics": {
+        "status": "accepted",
+        "tolerance": 0.05,
+        "field_accuracy_all": 1.0,
+        "accepted_field_accuracy": 1.0,
+        "coverage": 1.0,
+        "correct_fields": 39,
+        "total_fields": 39,
+        "missing_rows": 0,
+        "unexpected_rows": 0,
+        "wrong_candidate_detected": false,
+        "wrong_candidate_rejected": null,
+        "valid_candidate_attempts": 1,
+        "last_valid_candidate_round": 1,
+        "any_wrong_candidate_detected": false,
+        "wrong_candidate_revised": false,
+        "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+      },
+      "seconds": 92.0
+    },
+    {
+      "id": "newmont-tanami",
+      "parser": "mineru:4.0.12",
+      "selected_pages": [
+        22,
+        147
+      ],
+      "models": {
+        "extractor": "deepseek-v4-flash",
+        "critic": "qwen3.8-max"
+      },
+      "status": "accepted",
+      "rounds": 1,
+      "accepted_rows": 12,
+      "critic_scores": [
+        9
+      ],
+      "rule_issues": [
+        []
+      ],
+      "errors": [
+        null
+      ],
+      "reasons": [],
+      "parser_notes": [],
+      "metrics": {
+        "status": "accepted",
+        "tolerance": 0.05,
+        "field_accuracy_all": 1.0,
+        "accepted_field_accuracy": 1.0,
+        "coverage": 1.0,
+        "correct_fields": 36,
+        "total_fields": 36,
+        "missing_rows": 0,
+        "unexpected_rows": 0,
+        "wrong_candidate_detected": false,
+        "wrong_candidate_rejected": null,
+        "valid_candidate_attempts": 1,
+        "last_valid_candidate_round": 1,
+        "any_wrong_candidate_detected": false,
+        "wrong_candidate_revised": false,
+        "note": "Ground truth is used only here, never in model prompts or evolution few-shots."
+      },
+      "seconds": 108.6
+    }
+  ],
+  "checks": {
+    "previous_p0_tests": 24,
+    "local_basic_scan_smoke": "previously passed; latest CI verifies",
+    "local_advanced_cpu_scan_smoke": "passed",
+    "accepted_candidates_rechecked_with_final_rules": true,
+    "tests_passed": 191
+  },
+  "preserved_failures": {
+    "barrick_initial": "Two truncated provider responses, then missing unit quotations: abstain; no safety gate weakened",
+    "pilbara_initial": "Accepted 13 rows with two wrong total identities: 33/45 fields and 11/13 coverage. Final rules now reject that candidate; independent truth unchanged."
+  },
+  "limitations": [
+    "Kinross entire report still abstains: page155 incorrectly groups two Inferred rows into one mining method; not a successful full extraction.",
+    "Automatic selection is heuristic and does not prove every unknown PDF is complete.",
+    "Some identity checks still establish source presence rather than full row binding.",
+    "Public development references are manually checked, not the interviewer hidden ground truth."
+  ]
+}

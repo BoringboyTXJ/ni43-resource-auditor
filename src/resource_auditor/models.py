@@ -86,7 +86,7 @@ class AuditResult(StrictModel):
     rows: list[ResourceRow]
     attempts: list[Attempt]
     models: dict[str, str]
-    parser: str = "pdfplumber"
+    parser: str = "mineru"
     parser_notes: list[str] = Field(default_factory=list)
 
 

@@ -29,7 +29,8 @@
     "pages": "2",
     "standard": "JORC",
     "truth": "pilbara-jorc.truth.json",
-    "note": "Extra JORC/Li2O case. Requires explicit --allow-jorc; never treated as NI 43-101."
+    "note": "Extra JORC/Li2O case. Requires explicit --allow-jorc; never treated as NI 43-101.",
+    "automatic_truth": "pilbara-jorc.automatic.truth.json"
   },
   {
     "id": "newmont-tanami",
